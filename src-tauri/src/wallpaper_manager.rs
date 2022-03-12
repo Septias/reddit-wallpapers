@@ -7,12 +7,12 @@ use tauri::async_runtime::spawn_blocking;
 use crate::{client::RedditClient, Config, Post};
 use std::{
     collections::HashMap,
-    fs,
+    fs::{self, File},
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 enum Status {
     Cloud,
     Local(PathBuf),
@@ -24,7 +24,7 @@ impl Default for Status {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize, Clone)]
 pub struct PostInfo {
     status: Status,
     selected: bool,
@@ -36,6 +36,29 @@ pub struct WallpaperManager {
     reddit_client: RedditClient,
     posts: Mutex<Vec<Arc<Post>>>,
     last_seen_wallpaper: Mutex<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CachData {
+    post_data: HashMap<String, PostInfo>,
+    posts: Vec<Post>,
+    last_seen_wallpaper: String,
+}
+
+impl From<&WallpaperManager> for CachData {
+    fn from(wm: &WallpaperManager) -> Self {
+        Self {
+            post_data: (*wm.post_data.lock().unwrap()).clone(),
+            posts: wm
+                .posts
+                .lock()
+                .unwrap()
+                .iter()
+                .map(|post| (**post).clone())
+                .collect::<Vec<_>>(),
+            last_seen_wallpaper: wm.last_seen_wallpaper.lock().unwrap().clone(),
+        }
+    }
 }
 
 /// Define which data should be cached
@@ -64,7 +87,7 @@ impl WallpaperManager {
         }
     }
 
-    // Fetch all wallpapers
+    /// Fetch all wallpapers
     pub async fn fetch_all_wallpapers(&self) -> Vec<Post> {
         self.reddit_client
             .fetch_all_saved()
@@ -148,8 +171,9 @@ impl WallpaperManager {
         *self.last_seen_wallpaper.lock().unwrap() = new_last_seen;
     }
 
-    // Save all important data to the disc
+    /// Save all important data to the disc
     pub fn save(&self) {
-        unimplemented!()
+        let file = File::create("cache.json").unwrap();
+        serde_json::to_writer(file, &CachData::from(self));
     }
 }

@@ -4,6 +4,7 @@
 )]
 
 use app::{wallpaper_manager::WallpaperManager, Post};
+use tauri::generate_context;
 use std::{fs::read_to_string, sync::Arc};
 
 #[tauri::command]
@@ -48,8 +49,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config = toml::from_str(&read_to_string("./wallpapers.toml").unwrap()).unwrap();
     let wm = Arc::new(WallpaperManager::new(config));
-
-    tauri::Builder::default()
+    let wm_clone = wm.clone();
+    let app = tauri::Builder::default()
         .manage(wm)
         .invoke_handler(tauri::generate_handler![
             get_all_wallpapers,
@@ -57,8 +58,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             select_wallpaper,
             fetch_recent
         ])
-        .run(tauri::generate_context!())
+        .build(generate_context!())
         .expect("error while running tauri application");
-
+    
+    app.run(move |_app_handle, e| match e {
+        tauri::RunEvent::CloseRequested { .. } => {
+            wm_clone.save();
+        },
+        _ => (),
+    });    
     Ok(())
 }
