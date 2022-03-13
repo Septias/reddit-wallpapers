@@ -1,7 +1,6 @@
 <template>
   <div>
-    <div i-carbon-add class="cursor-pointer" @click="select_wallpaper" />
-    <div i-carbon-language />
+    <div i-carbon:select-01 class="cursor-pointer text-lg" @click="select_wallpaper" />
   </div>
 </template>
 
