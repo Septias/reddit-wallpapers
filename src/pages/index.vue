@@ -45,7 +45,7 @@ div.grid.m-4.grid-cols-3.gap-4
   border-right: 1px solid #ccc
 
 .rotate
-  animation: rotation 2s infinite linear
+  animation: rotation 0.25s infinite linear
 
 @keyframes rotation
   from
