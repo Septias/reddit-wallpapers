@@ -18,6 +18,10 @@ async function update() {
   fetching.value = false
 }
 
+onMounted(() => {
+  update()
+})
+
 </script>
 
 <template lang="pug">
