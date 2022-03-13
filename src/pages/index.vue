@@ -1,8 +1,8 @@
 <script setup lang="ts" async>
 
 import { invoke } from '@tauri-apps/api/tauri'
-let posts: Post[] = await invoke('get_cached_wallpapers')
-
+const posts = ref(await invoke('get_cached_wallpapers') as Post[])
+const fetching = ref(false)
 // import { posts } from '~/logic/post_mock'
 
 interface Post {
@@ -12,12 +12,10 @@ interface Post {
 }
 
 async function update() {
-  console.log('hi')
-
+  fetching.value = true
   await invoke('fetch_recent')
-  console.log('hi zwei')
-
-  posts = await invoke('get_cached_wallpapers')
+  posts.value = await invoke('get_cached_wallpapers')
+  fetching.value = false
 }
 
 </script>
@@ -26,7 +24,7 @@ async function update() {
 div.p-4.flex.justify-between.bg-blue.items-center.text-white
   h1.text-5xl Wallpapers
   div.p-1.border.rounded.cursor-pointer(@click="update")
-    div(class="i-carbon:cloud-download")
+    div(class="i-carbon:cloud-download" :class="{'rotate': fetching}")
 
 div.grid.m-4.grid-cols-3.gap-4
   div.border.pl-2.rounded.flex(v-for="post in posts")
@@ -41,4 +39,14 @@ div.grid.m-4.grid-cols-3.gap-4
 <style lang="sass">
 #divider
   border-right: 1px solid #ccc
+
+.rotate
+  animation: rotation 2s infinite linear
+
+@keyframes rotation
+  from
+    transform: rotate(0deg)
+  to
+    transform: rotate(359deg)
+
 </style>
