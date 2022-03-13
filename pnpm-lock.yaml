@@ -7,6 +7,7 @@ specifiers:
   '@tauri-apps/cli': ^1.0.0-rc.7
   '@types/markdown-it-link-attributes': ^3.0.1
   '@types/nprogress': ^0.2.0
+  '@unocss/extractor-pug': ^0.28.0
   '@unocss/reset': ^0.27.5
   '@vitejs/plugin-vue': ^2.2.4
   '@vue/test-utils': ^2.0.0-rc.18
@@ -57,6 +58,7 @@ devDependencies:
   '@tauri-apps/cli': 1.0.0-rc.7
   '@types/markdown-it-link-attributes': 3.0.1
   '@types/nprogress': 0.2.0
+  '@unocss/extractor-pug': 0.28.0_pug@3.0.2
   '@unocss/reset': 0.27.6
   '@vitejs/plugin-vue': 2.2.4_vite@2.8.6+vue@3.2.31
   '@vue/test-utils': 2.0.0-rc.18_vue@3.2.31
@@ -660,6 +662,17 @@ packages:
 
   /@unocss/core/0.27.6:
     resolution: {integrity: sha512-CNn/1eWNzUTvY8pVLxqHJ0olk9v+Vul/Kayp2YUG4lozq0RBGMqEl9kChYJ/0W08dnz5kM4OTaobgKkBdpa3QQ==}
+    dev: true
+
+  /@unocss/extractor-pug/0.28.0_pug@3.0.2:
+    resolution: {integrity: sha512-21n7ZClC9qcZwLF1m9g8Jn4JWEmvc2yKn/SiQaAd0VtrORATfihk4GLAlf/Lc3Do3vsEEHBR7qaykHMZfreRwQ==}
+    peerDependencies:
+      pug: ^3.0.0
+    peerDependenciesMeta:
+      pug:
+        optional: true
+    dependencies:
+      pug: 3.0.2
     dev: true
 
   /@unocss/inspector/0.27.6:

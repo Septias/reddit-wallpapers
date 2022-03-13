@@ -1,5 +1,6 @@
 import {
   defineConfig,
+  extractorSplit,
   presetAttributify,
   presetIcons,
   presetTypography,
@@ -8,6 +9,8 @@ import {
   transformerDirectives,
   transformerVariantGroup,
 } from 'unocss'
+
+import extractorPug from '@unocss/extractor-pug'
 
 export default defineConfig({
   presets: [
@@ -29,6 +32,10 @@ export default defineConfig({
   transformers: [
     transformerDirectives(),
     transformerVariantGroup(),
+  ],
+  extractors: [
+    extractorSplit,
+    extractorPug(),
   ],
   safelist: 'prose prose-sm m-auto text-left'.split(' '),
 })

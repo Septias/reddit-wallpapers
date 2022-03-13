@@ -12,24 +12,30 @@ interface Post {
 }
 
 async function update() {
+  console.log('hi')
+
   await invoke('fetch_recent')
+  console.log('hi zwei')
+
   posts = await invoke('get_cached_wallpapers')
 }
 
 </script>
 
 <template lang="pug">
-div(class="grid m-4 grid-cols-3 gap-4")
-  div(v-for="post in posts" class="border pl-2 rounded flex")
-    div(class="pb-2 pr-1")
-      h2(class="p-2") {{ post.title }}
+div.p-4.flex.justify-between.bg-blue.items-center.text-white
+  h1.text-5xl Wallpapers
+  div.p-1.border.rounded.cursor-pointer(@click="update")
+    div(class="i-carbon:cloud-download")
+
+div.grid.m-4.grid-cols-3.gap-4
+  div.border.pl-2.rounded.flex(v-for="post in posts")
+    div.pb-2.pr-1
+      h2.p-2 {{ post.title }}
       img(:src="post.url")
     div#divider
     utility_bar(:name="post.name")
 
-div(class="absolute top-0 left-0")
-  div(class="p-1 border rounded cursor-pointer")
-    div(@click="update") +
 </template>
 
 <style lang="sass">
