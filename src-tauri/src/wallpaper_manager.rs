@@ -7,7 +7,7 @@ use tauri::async_runtime::spawn_blocking;
 use crate::{client::RedditClient, Config, Post};
 use std::{
     collections::HashMap,
-    fs::{self, File},
+    fs::{self, read_to_string, File},
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
@@ -78,12 +78,21 @@ impl WallpaperManager {
     pub fn from_cache(config: Config) -> Self {
         let config = Arc::new(config);
         let reddit_client = RedditClient::new(config.clone());
+        let cach_data: CachData =
+            serde_json::from_str(&read_to_string("./cache.json").expect("no config file found"))
+                .unwrap();
         Self {
             config,
-            post_data: Default::default(),
+            post_data: Mutex::new(cach_data.post_data),
             reddit_client,
-            posts: Mutex::new(vec![]),
-            last_seen_wallpaper: Mutex::new("".to_string()),
+            posts: Mutex::new(
+                cach_data
+                    .posts
+                    .into_iter()
+                    .map(|post| Arc::new(post))
+                    .collect::<Vec<_>>(),
+            ),
+            last_seen_wallpaper: Mutex::new(cach_data.last_seen_wallpaper),
         }
     }
 

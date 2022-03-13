@@ -5,7 +5,7 @@
 
 use app::{wallpaper_manager::WallpaperManager, Post};
 use tauri::generate_context;
-use std::{fs::read_to_string, sync::Arc};
+use std::{fs::read_to_string, sync::Arc, path::PathBuf};
 
 #[tauri::command]
 async fn get_all_wallpapers(
@@ -48,7 +48,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
     let config = toml::from_str(&read_to_string("./wallpapers.toml").unwrap()).unwrap();
-    let wm = Arc::new(WallpaperManager::new(config));
+
+    let wm = Arc::new(if PathBuf::from("./cache.json").exists() {
+        WallpaperManager::from_cache(config)
+    } else {
+        WallpaperManager::new(config)
+    });
+
     let wm_clone = wm.clone();
     let app = tauri::Builder::default()
         .manage(wm)
