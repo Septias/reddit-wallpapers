@@ -12,7 +12,7 @@ use tokio::{
     io::AsyncWriteExt,
 };
 
-use crate::{Config, Post, TokenInfo, UserData};
+use crate::{Config, Post, TokenInfo, UserData, WallpaperError, VALID_EXTENSION};
 
 pub struct RedditClient {
     client: Client,
@@ -147,7 +147,7 @@ impl RedditClient {
             }
         }
         *until = new_until;
-        info!("loaded {} posts", all_children.len());
+        info!("fetched {} posts", all_children.len());
         all_children
     }
 
@@ -156,11 +156,6 @@ impl RedditClient {
     }
 
     pub async fn downloader_post_images(&self, posts: Vec<Arc<Post>>) {
-        /* create_dir(&folder)
-        .await
-        .expect("couldn't create folder for content"); */
-
-        // download all images from posts
         {
             let tasks = posts
                 .into_iter()
@@ -174,7 +169,7 @@ impl RedditClient {
         &self,
         mut path: PathBuf,
         post: Arc<Post>,
-    ) -> tauri::async_runtime::TokioJoinHandle<PathBuf> {
+    ) -> tauri::async_runtime::TokioJoinHandle<Result<PathBuf, WallpaperError>> {
         if !path.is_dir() {
             create_dir_all(&path).await.unwrap();
         }
@@ -193,6 +188,9 @@ impl RedditClient {
                 .nth(1)
                 .unwrap();
 
+            if !VALID_EXTENSION.contains(&extension) {
+                return Err(WallpaperError::InvalidEnding);
+            }
             path.set_extension(extension);
             info!("saving image {:?} at {:?}", post.title, path);
 
@@ -203,7 +201,7 @@ impl RedditClient {
                 let chunk = chunk.unwrap();
                 file.write_all(&chunk).await.unwrap();
             }
-            path
+            Ok(path)
         })
     }
 }

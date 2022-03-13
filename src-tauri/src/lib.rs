@@ -1,10 +1,12 @@
-use std::path::PathBuf;
-
 use json::JsonValue;
 use serde::{Deserialize, Serialize};
-
+use std::path::PathBuf;
+use thiserror::Error;
 pub mod client;
 pub mod wallpaper_manager;
+
+pub const VALID_EXTENSION: [&str; 8] = ["tif", "tiff", "bmp", "jpg", "jpeg", "png", "gif", "raw"];
+
 #[derive(Deserialize, Debug)]
 pub struct UserData {
     pub id: String,
@@ -54,4 +56,10 @@ impl From<&JsonValue> for Post {
 #[derive(Deserialize)]
 struct TokenInfo {
     access_token: String,
+}
+
+#[derive(Error, Debug)]
+pub enum WallpaperError {
+    #[error("The image-file does not a have a valid image-ending")]
+    InvalidEnding,
 }

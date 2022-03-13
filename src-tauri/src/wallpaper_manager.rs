@@ -1,10 +1,10 @@
 #![allow(unused)]
 use futures_util::lock::MutexGuard;
-use log::info;
+use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use tauri::async_runtime::spawn_blocking;
 
-use crate::{client::RedditClient, Config, Post};
+use crate::{client::RedditClient, Config, Post, VALID_EXTENSION};
 use std::{
     collections::HashMap,
     fs::{self, read_to_string, File},
@@ -89,7 +89,7 @@ impl WallpaperManager {
                 cach_data
                     .posts
                     .into_iter()
-                    .map(|post| Arc::new(post))
+                    .map(Arc::new)
                     .collect::<Vec<_>>(),
             ),
             last_seen_wallpaper: Mutex::new(cach_data.last_seen_wallpaper),
@@ -128,17 +128,24 @@ impl WallpaperManager {
 
         match status {
             Status::Cloud => {
-                let save_path = self
+                let result = self
                     .reddit_client
                     .download_post_image(self.config.path.clone(), post)
                     .await
                     .await
                     .unwrap();
-                info!("{:?}", save_path.to_str());
-                wallpaper::set_from_path((&save_path.canonicalize().unwrap()).to_str().unwrap());
-                let mut post_data = self.post_data.lock().unwrap();
-                let single_post_data = post_data.get_mut(name).unwrap();
-                single_post_data.status = Status::Local(save_path);
+
+                match result {
+                    Ok(save_path) => {
+                        wallpaper::set_from_path(
+                            (&save_path.canonicalize().unwrap()).to_str().unwrap(),
+                        );
+                        let mut post_data = self.post_data.lock().unwrap();
+                        let single_post_data = post_data.get_mut(name).unwrap();
+                        single_post_data.status = Status::Local(save_path);
+                    }
+                    Err(e) => warn!("{:?}", e),
+                };
             }
             Status::Local(path) => {
                 wallpaper::set_from_path(path.to_str().unwrap());
@@ -165,6 +172,16 @@ impl WallpaperManager {
             .await
             .into_iter()
             .filter(|post| post.subreddit == "wallpaper")
+            .filter(|post| {
+                let valid = VALID_EXTENSION.contains(&post.url.split('.').last().unwrap());
+                if !valid {
+                    warn!(
+                        "not adding resource {}, because it has no valid picture-ending",
+                        post.url
+                    );
+                }
+                valid
+            })
             .map(Arc::from)
             .collect::<Vec<_>>();
 
@@ -176,7 +193,7 @@ impl WallpaperManager {
                 .insert(post.name.clone(), Default::default());
         });
         self.posts.lock().unwrap().extend(posts);
-        info!("we now have: {:?} posts", self.posts.lock().unwrap().len());
+        info!("new image count: {}", self.posts.lock().unwrap().len());
         *self.last_seen_wallpaper.lock().unwrap() = new_last_seen;
     }
 

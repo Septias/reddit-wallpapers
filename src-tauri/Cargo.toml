@@ -26,6 +26,7 @@ futures-util = "*"
 toml = "*"
 wallpaper = "*"
 env_logger = "*"
+thiserror = "*"
 
 [features]
 # by default Tauri runs in production mode

@@ -4,8 +4,8 @@
 )]
 
 use app::{wallpaper_manager::WallpaperManager, Post};
+use std::{fs::read_to_string, path::PathBuf, sync::Arc};
 use tauri::generate_context;
-use std::{fs::read_to_string, sync::Arc, path::PathBuf};
 
 #[tauri::command]
 async fn get_all_wallpapers(
@@ -66,12 +66,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ])
         .build(generate_context!())
         .expect("error while running tauri application");
-    
-    app.run(move |_app_handle, e| match e {
-        tauri::RunEvent::CloseRequested { .. } => {
-            wm_clone.save();
-        },
-        _ => (),
-    });    
+
+    app.run(move |_app_handle, e| if let tauri::RunEvent::CloseRequested { .. } = e {
+        wm_clone.save();
+    });
     Ok(())
 }
