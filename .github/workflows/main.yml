@@ -1,5 +1,10 @@
 name: "test-on-pr"
-on: [pull_request]
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to set for the build'
+        required: false
 
 jobs:
   test-tauri:
