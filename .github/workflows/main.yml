@@ -3,7 +3,11 @@ on:
   push:
     branches:
       - release
-
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to set for the build'
+        required: false
 jobs:
   publish-tauri:
     strategy:
