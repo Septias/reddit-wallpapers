@@ -10,10 +10,11 @@ Application to set wallpapers from reddit as desktop-background.
 username = "<reddit username>"
 password = "<reddit password>"
 path = "./wallpapers/" # relative or absolute path
-client_id = "<your reddit-client api>"
+client_id = "<your reddit-client-key>" # create this at https://www.reddit.com/prefs/apps
 client_secret = "your client-secret"
 ```
 
+Nice tutorial on how to create a user-script: https://github.com/reddit-archive/reddit/wiki/OAuth2-Quick-Start-Example
 
 ## Used Technologies
 ### Backend
