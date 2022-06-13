@@ -28,9 +28,9 @@ onMounted(() => {
 div.p-4.flex.justify-between.bg-blue-900.items-center.text-white
   h1.text-5xl Wallpapers
   div.p-1.border.rounded.cursor-pointer(@click="update")
-    div(class="i-carbon:cloud-download" :class="{'rotate': fetching}")
+    div(class="i-carbon:cloud-download" :class="{ 'rotate': fetching }")
 
-div.flex.p-2.bg-gray-700.flex-wrap
+div.p-2.wallpapers.grid.gap-2
   div.border.rounded.flex.max-width(v-for="post in posts")
     wallpaper(:post="post")
 </template>
@@ -39,12 +39,12 @@ div.flex.p-2.bg-gray-700.flex-wrap
 #divider
   border-right: 1px solid #ccc
 
+.wallpapers
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr))
+
 .rotate
   animation: rotation 0.25s infinite linear
 
-.max-width
-  width: 100%
-  max-width: 200px
 
 @keyframes rotation
   from
