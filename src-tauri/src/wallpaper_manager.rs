@@ -126,7 +126,6 @@ impl WallpaperManager {
             .status
             .clone();
 
-        println!("{status:?}");
         match status {
             Status::Cloud => {
                 let result = self
@@ -149,7 +148,6 @@ impl WallpaperManager {
                 };
             }
             Status::Local(path) => {
-                println!("{path:?}");
                 wallpaper::set_from_path(path.to_str().unwrap()).unwrap();
             }
         }

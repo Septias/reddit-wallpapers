@@ -4,7 +4,7 @@ specifiers:
   '@antfu/eslint-config': ^0.18.5
   '@iconify-json/carbon': ^1.1.1
   '@tauri-apps/api': ^1.0.0-rc.2
-  '@tauri-apps/cli': ^1.0.0-rc.7
+  '@tauri-apps/cli': 1.0.0-rc.7
   '@types/markdown-it-link-attributes': ^3.0.1
   '@types/nprogress': ^0.2.0
   '@unocss/extractor-pug': ^0.28.0
