@@ -3891,8 +3891,7 @@ dependencies = [
 [[package]]
 name = "wallpaper"
 version = "3.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0547c84bf49b1096b20ce49736b86cd27f8225fc426665d3fba19e71e44c4d46"
+source = "git+https://github.com/andr35/wallpaper.rs.git#2f9d87aaaae1f6b7acf3bb852860d2eaa5bfdd7b"
 dependencies = [
  "dirs",
  "enquote",

@@ -19,12 +19,14 @@ async fn get_all_wallpapers(
 async fn get_cached_wallpapers(
     wm: tauri::State<'_, Arc<WallpaperManager>>,
 ) -> Result<Vec<Post>, ()> {
-    let posts = wm
+    let mut posts = wm
         .get_cached_wallpapers()
         .await
         .iter()
         .map(|post_arc| (**post_arc).clone())
         .collect::<Vec<_>>();
+    
+    posts.reverse();
     Ok(posts)
 }
 

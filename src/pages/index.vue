@@ -25,19 +25,14 @@ onMounted(() => {
 </script>
 
 <template lang="pug">
-div.p-4.flex.justify-between.bg-blue.items-center.text-white
+div.p-4.flex.justify-between.bg-blue-900.items-center.text-white
   h1.text-5xl Wallpapers
   div.p-1.border.rounded.cursor-pointer(@click="update")
     div(class="i-carbon:cloud-download" :class="{'rotate': fetching}")
 
-div.grid.m-4.grid-cols-3.gap-4
-  div.border.pl-2.rounded.flex(v-for="post in posts")
-    div.pb-2.pr-1
-      h2.p-2 {{ post.title }}
-      img(:src="post.url")
-    div#divider
-    utility_bar(:name="post.name")
-
+div.flex.p-2.bg-gray-700.flex-wrap
+  div.border.rounded.flex.max-width(v-for="post in posts")
+    wallpaper(:post="post")
 </template>
 
 <style lang="sass">
@@ -46,6 +41,10 @@ div.grid.m-4.grid-cols-3.gap-4
 
 .rotate
   animation: rotation 0.25s infinite linear
+
+.max-width
+  width: 100%
+  max-width: 200px
 
 @keyframes rotation
   from

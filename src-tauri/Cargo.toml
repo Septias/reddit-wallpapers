@@ -24,7 +24,7 @@ log = "*"
 json = "*"
 futures-util = "*"
 toml = "*"
-wallpaper = "*"
+wallpaper = {git="https://github.com/andr35/wallpaper.rs.git"}
 env_logger = "*"
 thiserror = "*"
 

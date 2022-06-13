@@ -5,6 +5,7 @@
 declare module 'vue' {
   export interface GlobalComponents {
     Utility_bar: typeof import('./components/utility_bar.vue')['default']
+    Wallpaper: typeof import('./components/wallpaper.vue')['default']
   }
 }
 

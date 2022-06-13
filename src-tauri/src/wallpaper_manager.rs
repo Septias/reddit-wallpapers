@@ -12,7 +12,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 enum Status {
     Cloud,
     Local(PathBuf),
@@ -126,6 +126,7 @@ impl WallpaperManager {
             .status
             .clone();
 
+        println!("{status:?}");
         match status {
             Status::Cloud => {
                 let result = self
@@ -148,7 +149,8 @@ impl WallpaperManager {
                 };
             }
             Status::Local(path) => {
-                wallpaper::set_from_path(path.to_str().unwrap());
+                println!("{path:?}");
+                wallpaper::set_from_path(path.to_str().unwrap()).unwrap();
             }
         }
     }
