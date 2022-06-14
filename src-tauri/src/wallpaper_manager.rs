@@ -99,7 +99,7 @@ impl WallpaperManager {
     /// Fetch all wallpapers
     pub async fn fetch_all_wallpapers(&self) -> Vec<Post> {
         self.reddit_client
-            .fetch_all_saved()
+            .fetch_all_saved_posts()
             .await
             .into_iter()
             .filter(|post| post.subreddit == "wallpaper")
@@ -117,6 +117,7 @@ impl WallpaperManager {
         let post = self
             .get_post(name)
             .unwrap_or_else(|| panic!("no post with name {} exists", name));
+
         let status = self
             .post_data
             .lock()
@@ -131,9 +132,7 @@ impl WallpaperManager {
                 let result = self
                     .reddit_client
                     .download_post_image(self.config.path.clone(), post)
-                    .await
-                    .await
-                    .unwrap();
+                    .await;
 
                 match result {
                     Ok(save_path) => {
@@ -185,6 +184,8 @@ impl WallpaperManager {
             .map(Arc::from)
             .collect::<Vec<_>>();
 
+        self.download_images(&posts).await;
+
         // create info for all the posts
         posts.iter().for_each(|post| {
             self.post_data
@@ -201,5 +202,9 @@ impl WallpaperManager {
     pub fn save(&self) {
         let file = File::create("cache.json").unwrap();
         serde_json::to_writer(file, &CachData::from(self));
+    }
+
+    pub async fn download_images(&self, posts: &[Arc<Post>]) {
+        self.reddit_client.downloader_post_images(posts).await;
     }
 }

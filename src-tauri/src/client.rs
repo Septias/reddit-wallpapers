@@ -74,7 +74,7 @@ impl RedditClient {
         serde_json::from_str(&response.text().await.unwrap()).unwrap()
     }
 
-    /// fetch all saved posts until `until` is found in one of the reqests
+    /// fetch all saved posts until `until` is found in one of the requests
     /// changes until so that it has the id of the newest saved post after
     /// this method finished executing
     pub async fn fetch_saved_until(&self, until: &mut String) -> Vec<Post> {
@@ -108,7 +108,7 @@ impl RedditClient {
 
             let content = &saved.text().await.unwrap();
 
-            //fs::write("test.json", content);
+            // std::fs::write("test.json", content).unwrap();
             let resp = json::parse(content).unwrap();
             let child_array = &resp["data"]["children"];
 
@@ -151,29 +151,38 @@ impl RedditClient {
         all_children
     }
 
-    pub async fn fetch_all_saved(&self) -> Vec<Post> {
+    pub async fn fetch_all_saved_posts(&self) -> Vec<Post> {
         self.fetch_saved_until(&mut "".to_owned()).await
     }
 
-    pub async fn downloader_post_images(&self, posts: Vec<Arc<Post>>) {
-        {
+    pub async fn downloader_post_images(&self, posts: &[Arc<Post>]) -> Vec<PathBuf> {
+        let request_results = {
             let tasks = posts
                 .into_iter()
-                .map(|post| self.download_post_image(self.config.path.clone(), post));
+                .map(|post| self.download_post_image(self.config.path.clone(), post.clone()));
 
-            join_all(tasks).await;
-        }
+            join_all(tasks).await
+        };
+        request_results
+            .into_iter()
+            .filter_map(|maybe_path| {
+                if let Ok(path) = maybe_path {
+                    Some(path)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
     }
 
     pub async fn download_post_image(
         &self,
         mut path: PathBuf,
         post: Arc<Post>,
-    ) -> tauri::async_runtime::TokioJoinHandle<Result<PathBuf, WallpaperError>> {
+    ) -> Result<PathBuf, WallpaperError> {
         if !path.is_dir() {
             create_dir_all(&path).await.unwrap();
         }
-
         path.push(&post.name);
         tokio::spawn(async move {
             let resp = reqwest::get(post.url.clone()).await.unwrap();
@@ -203,5 +212,7 @@ impl RedditClient {
             }
             Ok(path)
         })
+        .await
+        .unwrap()
     }
 }

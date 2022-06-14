@@ -45,7 +45,6 @@ div.p-2.wallpapers.grid.gap-2
 .rotate
   animation: rotation 0.25s infinite linear
 
-
 @keyframes rotation
   from
     transform: rotate(0deg)

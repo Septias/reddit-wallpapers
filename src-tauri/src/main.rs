@@ -25,7 +25,6 @@ async fn get_cached_wallpapers(
         .iter()
         .map(|post_arc| (**post_arc).clone())
         .collect::<Vec<_>>();
-    
     posts.reverse();
     Ok(posts)
 }
@@ -69,8 +68,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build(generate_context!())
         .expect("error while running tauri application");
 
-    app.run(move |_app_handle, e| if let tauri::RunEvent::CloseRequested { .. } = e {
-        wm_clone.save();
+    app.run(move |_app_handle, e| {
+        if let tauri::RunEvent::CloseRequested { .. } = e {
+            wm_clone.save();
+        }
     });
     Ok(())
 }
