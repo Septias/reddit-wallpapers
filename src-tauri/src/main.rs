@@ -3,7 +3,10 @@
     windows_subsystem = "windows"
 )]
 
-use app::{wallpaper_manager::WallpaperManager, Post};
+use app::{
+    wallpaper_manager::{Wallpaper, WallpaperManager},
+    Post,
+};
 use std::{fs::read_to_string, path::PathBuf, sync::Arc};
 use tauri::generate_context;
 
@@ -18,7 +21,7 @@ async fn get_all_wallpapers(
 #[tauri::command]
 async fn get_cached_wallpapers(
     wm: tauri::State<'_, Arc<WallpaperManager>>,
-) -> Result<Vec<Post>, ()> {
+) -> Result<Vec<Wallpaper>, ()> {
     let mut posts = wm
         .get_cached_wallpapers()
         .await

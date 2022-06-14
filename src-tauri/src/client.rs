@@ -1,5 +1,5 @@
 use futures_util::{future::join_all, StreamExt};
-use log::{debug, info};
+use log::{debug, info, warn};
 use reqwest::{Client, ClientBuilder};
 use std::{
     collections::HashMap,
@@ -18,6 +18,22 @@ pub struct RedditClient {
     client: Client,
     token: Arc<Mutex<Option<String>>>,
     config: Arc<Config>,
+}
+
+async fn get_and_add_to_map(
+    post: Arc<Post>,
+    map: Arc<Mutex<HashMap<String, PathBuf>>>,
+    client: &RedditClient,
+) {
+    let response = client
+        .download_post_image(client.config.path.clone(), post.clone())
+        .await;
+
+    if let Ok(path_buf) = response {
+        map.lock().unwrap().insert(post.name.clone(), path_buf);
+    } else {
+        warn!("wallpapererror: {:?}", response);
+    }
 }
 
 impl RedditClient {
@@ -151,30 +167,27 @@ impl RedditClient {
         all_children
     }
 
+
+    /// gets all posts the user saved
     pub async fn fetch_all_saved_posts(&self) -> Vec<Post> {
         self.fetch_saved_until(&mut "".to_owned()).await
     }
 
-    pub async fn downloader_post_images(&self, posts: &[Arc<Post>]) -> Vec<PathBuf> {
-        let request_results = {
-            let tasks = posts
-                .into_iter()
-                .map(|post| self.download_post_image(self.config.path.clone(), post.clone()));
-
-            join_all(tasks).await
-        };
-        request_results
+    /// returns a a hashmap which maps post-ids to the image-paths
+    pub async fn downloader_post_images(
+        &self,
+        posts: &[Arc<Post>],
+    ) -> HashMap<String, PathBuf> {
+        let post_to_path = Arc::new(Mutex::new(HashMap::new()));
+        let tasks = posts
             .into_iter()
-            .filter_map(|maybe_path| {
-                if let Ok(path) = maybe_path {
-                    Some(path)
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>()
+            .map(|post| get_and_add_to_map(post.clone(), post_to_path.clone(), &self));
+        join_all(tasks).await;
+        Mutex::into_inner(Arc::try_unwrap(post_to_path).unwrap()).unwrap()
     }
 
+
+    /// download the image contained in the post
     pub async fn download_post_image(
         &self,
         mut path: PathBuf,

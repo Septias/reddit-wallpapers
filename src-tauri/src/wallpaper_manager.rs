@@ -12,36 +12,32 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
-enum Status {
-    Cloud,
-    Local(PathBuf),
-}
-
-impl Default for Status {
-    fn default() -> Self {
-        Self::Cloud
-    }
-}
-
 #[derive(Default, Serialize, Deserialize, Clone)]
 pub struct PostInfo {
-    status: Status,
     selected: bool,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct Wallpaper {
+    pub subreddit: String,
+    pub title: String,
+    pub url: String,
+    pub name: String,
+    path: PathBuf,
 }
 
 pub struct WallpaperManager {
     config: Arc<Config>,
     post_data: Mutex<HashMap<String, PostInfo>>,
     reddit_client: RedditClient,
-    posts: Mutex<Vec<Arc<Post>>>,
+    wallpapers: Mutex<Vec<Arc<Wallpaper>>>,
     last_seen_wallpaper: Mutex<String>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct CachData {
     post_data: HashMap<String, PostInfo>,
-    posts: Vec<Post>,
+    posts: Vec<Wallpaper>,
     last_seen_wallpaper: String,
 }
 
@@ -50,7 +46,7 @@ impl From<&WallpaperManager> for CachData {
         Self {
             post_data: (*wm.post_data.lock().unwrap()).clone(),
             posts: wm
-                .posts
+                .wallpapers
                 .lock()
                 .unwrap()
                 .iter()
@@ -70,7 +66,7 @@ impl WallpaperManager {
             config,
             post_data: Default::default(),
             reddit_client,
-            posts: Mutex::new(vec![]),
+            wallpapers: Mutex::new(vec![]),
             last_seen_wallpaper: Mutex::new("".to_string()),
         }
     }
@@ -85,7 +81,7 @@ impl WallpaperManager {
             config,
             post_data: Mutex::new(cach_data.post_data),
             reddit_client,
-            posts: Mutex::new(
+            wallpapers: Mutex::new(
                 cach_data
                     .posts
                     .into_iter()
@@ -108,52 +104,21 @@ impl WallpaperManager {
 
     /// Get the cached wallpaper
     /// FIXME: don't clone
-    pub async fn get_cached_wallpapers(&self) -> Vec<Arc<Post>> {
-        self.posts.lock().unwrap().clone()
+    pub async fn get_cached_wallpapers(&self) -> Vec<Arc<Wallpaper>> {
+        self.wallpapers.lock().unwrap().clone()
     }
 
     /// Set a wallpaper as system-wallpaper
     pub async fn set_wallpaper(&self, name: &str) {
-        let post = self
-            .get_post(name)
+        let wallpaper = self
+            .get_wallpaper(name)
             .unwrap_or_else(|| panic!("no post with name {} exists", name));
 
-        let status = self
-            .post_data
-            .lock()
-            .unwrap()
-            .get(name)
-            .expect("no post_data for this post")
-            .status
-            .clone();
-
-        match status {
-            Status::Cloud => {
-                let result = self
-                    .reddit_client
-                    .download_post_image(self.config.path.clone(), post)
-                    .await;
-
-                match result {
-                    Ok(save_path) => {
-                        wallpaper::set_from_path(
-                            (&save_path.canonicalize().unwrap()).to_str().unwrap(),
-                        );
-                        let mut post_data = self.post_data.lock().unwrap();
-                        let single_post_data = post_data.get_mut(name).unwrap();
-                        single_post_data.status = Status::Local(save_path);
-                    }
-                    Err(e) => warn!("{:?}", e),
-                };
-            }
-            Status::Local(path) => {
-                wallpaper::set_from_path(path.to_str().unwrap()).unwrap();
-            }
-        }
+        wallpaper::set_from_path(wallpaper.path.to_str().unwrap()).unwrap();
     }
 
-    fn get_post(&self, name: &str) -> Option<Arc<Post>> {
-        self.posts
+    fn get_wallpaper(&self, name: &str) -> Option<Arc<Wallpaper>> {
+        self.wallpapers
             .lock()
             .unwrap()
             .iter()
@@ -184,7 +149,7 @@ impl WallpaperManager {
             .map(Arc::from)
             .collect::<Vec<_>>();
 
-        self.download_images(&posts).await;
+        let paths = self.reddit_client.downloader_post_images(&posts).await;
 
         // create info for all the posts
         posts.iter().for_each(|post| {
@@ -193,8 +158,20 @@ impl WallpaperManager {
                 .unwrap()
                 .insert(post.name.clone(), Default::default());
         });
-        self.posts.lock().unwrap().extend(posts);
-        info!("new image count: {}", self.posts.lock().unwrap().len());
+
+        let wallpapers = posts.into_iter().map(|post| {
+            let post = Arc::try_unwrap(post).unwrap();
+            Arc::new(Wallpaper {
+                subreddit: post.subreddit,
+                title: post.title,
+                url: post.url,
+                path: paths.get(&post.name).unwrap().clone(),
+                name: post.name,
+            })
+        });
+
+        self.wallpapers.lock().unwrap().extend(wallpapers);
+        info!("new image count: {}", self.wallpapers.lock().unwrap().len());
         *self.last_seen_wallpaper.lock().unwrap() = new_last_seen;
     }
 
@@ -202,9 +179,5 @@ impl WallpaperManager {
     pub fn save(&self) {
         let file = File::create("cache.json").unwrap();
         serde_json::to_writer(file, &CachData::from(self));
-    }
-
-    pub async fn download_images(&self, posts: &[Arc<Post>]) {
-        self.reddit_client.downloader_post_images(posts).await;
     }
 }
