@@ -114,6 +114,7 @@ impl WallpaperManager {
             .get_wallpaper(name)
             .unwrap_or_else(|| panic!("no post with name {} exists", name));
 
+        info!("setting wallpaper: {:?}", wallpaper.path.to_str());
         wallpaper::set_from_path(wallpaper.path.to_str().unwrap()).unwrap();
     }
 

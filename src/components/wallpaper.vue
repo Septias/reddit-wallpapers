@@ -1,8 +1,6 @@
 <template lang="pug">
 div.cursor-pointer(@click="select_wallpaper")
     img(:src="post.url")
-    //div#divider
-    //utility_bar(:name="post.name")
 </template>
 
 <script lang="ts" setup>import { invoke } from '@tauri-apps/api/tauri'

@@ -51,7 +51,11 @@ async fn select_wallpaper(
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
-    let config = toml::from_str(&read_to_string("./wallpapers.toml").unwrap()).unwrap();
+    let config = toml::from_str(
+        &read_to_string("./wallpapers.toml")
+            .expect("you need a configuration file wallpapers.toml"),
+    )
+    .unwrap();
 
     let wm = Arc::new(if PathBuf::from("./cache.json").exists() {
         WallpaperManager::from_cache(config)

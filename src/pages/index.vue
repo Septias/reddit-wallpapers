@@ -19,7 +19,7 @@ async function update() {
 }
 
 onMounted(() => {
-  update()
+  //update()
 })
 
 </script>

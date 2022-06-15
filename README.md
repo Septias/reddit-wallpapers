@@ -9,7 +9,7 @@ Application to set wallpapers from reddit as desktop-background.
 ```toml
 username = "<reddit username>"
 password = "<reddit password>"
-path = "./wallpapers/" # relative or absolute path
+path = "/home/.../wallpapers/" # absolute path
 client_id = "<your reddit-client-key>" # create this at https://www.reddit.com/prefs/apps
 client_secret = "your client-secret"
 ```
