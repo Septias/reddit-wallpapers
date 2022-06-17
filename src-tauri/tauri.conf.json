@@ -48,7 +48,14 @@
       "active": false
     },
     "allowlist": {
-      "all": true
+      "all": true,
+      "protocol": {
+        "assetScope": [
+          "$HOME/**"
+        ],
+        "all": true,
+        "asset": true
+      }
     },
     "windows": [
       {
@@ -60,7 +67,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; image-src: * asset: http://localhost:3000"
     }
   }
 }
