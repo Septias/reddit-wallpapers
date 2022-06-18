@@ -1,9 +1,10 @@
 <script setup lang="ts" async>
 
+// import { posts } from '~/logic/post_mock'
 import { invoke } from '@tauri-apps/api/tauri'
 const posts = ref(await invoke('get_cached_wallpapers') as Post[])
 const fetching = ref(false)
-// import { posts } from '~/logic/post_mock'
+const base_path: string = await invoke('get_wallpapers_path')
 
 interface Post {
   name: string
@@ -19,20 +20,18 @@ async function update() {
 }
 
 onMounted(() => {
-  //update()
+  // update()
 })
 
 </script>
 
 <template lang="pug">
-div.p-4.flex.justify-between.bg-blue-900.items-center.text-white
-  h1.text-5xl Wallpapers
-  div.p-1.border.rounded.cursor-pointer(@click="update")
-    div(class="i-carbon:cloud-download" :class="{ 'rotate': fetching }")
+div.absolute.right-0.m-2.p-2.rounded.text-pink-500.cursor-pointer(@click="update")
+  div(class="i-carbon:cloud-download" :class="{ 'rotate': fetching }")
 
-div.p-2.wallpapers.grid.gap-2
-  div.border.rounded.flex.max-width(v-for="post in posts")
-    wallpaper(:post="post")
+div.p-2.wallpapers.grid.gap-2.justify-center
+  div(v-for="post in posts")
+    wallpaper(:post="post" :basePath="base_path")
 </template>
 
 <style lang="sass">
@@ -40,7 +39,7 @@ div.p-2.wallpapers.grid.gap-2
   border-right: 1px solid #ccc
 
 .wallpapers
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr))
+  grid-template-columns: repeat(auto-fit, 300px)
 
 .rotate
   animation: rotation 0.25s infinite linear

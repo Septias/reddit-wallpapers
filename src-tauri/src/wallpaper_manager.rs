@@ -1,8 +1,10 @@
 #![allow(unused)]
-use futures_util::lock::MutexGuard;
+use futures_util::{lock::MutexGuard, future::join_all};
+use image::io::Reader;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use tauri::async_runtime::spawn_blocking;
+use tokio::fs::create_dir;
 
 use crate::{client::RedditClient, Config, Post, VALID_EXTENSION};
 use std::{
@@ -23,7 +25,7 @@ pub struct Wallpaper {
     pub title: String,
     pub url: String,
     pub name: String,
-    path: PathBuf,
+    pub file_name: String,
 }
 
 pub struct WallpaperManager {
@@ -114,8 +116,10 @@ impl WallpaperManager {
             .get_wallpaper(name)
             .unwrap_or_else(|| panic!("no post with name {} exists", name));
 
-        info!("setting wallpaper: {:?}", wallpaper.path.to_str());
-        wallpaper::set_from_path(wallpaper.path.to_str().unwrap()).unwrap();
+        let path = self.config.path.join(&wallpaper.file_name);
+        let path = path.to_str().unwrap();
+        info!("setting wallpaper: {:?}", path);
+        wallpaper::set_from_path(path).unwrap();
     }
 
     fn get_wallpaper(&self, name: &str) -> Option<Arc<Wallpaper>> {
@@ -152,6 +156,35 @@ impl WallpaperManager {
 
         let paths = self.reddit_client.downloader_post_images(&posts).await;
 
+        let thumbnails_path = self.wallpaper_path().join("thumbnails");
+        if !thumbnails_path.exists() {
+            create_dir(&thumbnails_path).await.unwrap();
+        }
+        let mut futures = vec![];
+        for file_name in paths.values() {
+            let file_name = file_name.to_owned();
+            let thumbnails_path = thumbnails_path.clone();
+            let file_path = self.wallpaper_path().join(&file_name);
+            let future = spawn_blocking(move || {
+                let single_path = thumbnails_path.join(&file_name);
+                if (single_path.exists()) {
+                    return;
+                }
+                let image = Reader::open(&file_path)
+                    .unwrap()
+                    .decode()
+                    .unwrap();
+                let factor = image.height() as f32 / image.width() as f32;
+                let thumbnail = image.thumbnail(300, (300. * factor) as u32);
+                thumbnail.save(&single_path).unwrap();
+                info!("generated thumbnail {:?}", &single_path);
+            });
+            futures.push(future);
+        }
+        for future in futures {
+            future.await.unwrap();
+        }
+
         // create info for all the posts
         posts.iter().for_each(|post| {
             self.post_data
@@ -166,7 +199,7 @@ impl WallpaperManager {
                 subreddit: post.subreddit,
                 title: post.title,
                 url: post.url,
-                path: paths.get(&post.name).unwrap().clone(),
+                file_name: paths.get(&post.name).unwrap().clone(),
                 name: post.name,
             })
         });
@@ -180,5 +213,9 @@ impl WallpaperManager {
     pub fn save(&self) {
         let file = File::create("cache.json").unwrap();
         serde_json::to_writer(file, &CachData::from(self));
+    }
+
+    pub fn wallpaper_path(&self) -> &Path {
+        &self.config.path.as_path()
     }
 }

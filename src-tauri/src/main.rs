@@ -47,6 +47,14 @@ async fn select_wallpaper(
     Ok(())
 }
 
+#[tauri::command]
+async fn get_wallpapers_path(
+    wm: tauri::State<'_, Arc<WallpaperManager>>,
+) -> Result<String, ()> {
+    Ok(wm.wallpaper_path().to_str().unwrap().to_owned())
+}
+
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
@@ -70,7 +78,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             get_all_wallpapers,
             get_cached_wallpapers,
             select_wallpaper,
-            fetch_recent
+            fetch_recent,
+            get_wallpapers_path
         ])
         .build(generate_context!())
         .expect("error while running tauri application");

@@ -22,7 +22,7 @@ pub struct RedditClient {
 
 async fn get_and_add_to_map(
     post: Arc<Post>,
-    map: Arc<Mutex<HashMap<String, PathBuf>>>,
+    map: Arc<Mutex<HashMap<String, String>>>,
     client: &RedditClient,
 ) {
     let response = client
@@ -177,7 +177,7 @@ impl RedditClient {
     pub async fn downloader_post_images(
         &self,
         posts: &[Arc<Post>],
-    ) -> HashMap<String, PathBuf> {
+    ) -> HashMap<String, String> {
         let post_to_path = Arc::new(Mutex::new(HashMap::new()));
         let tasks = posts
             .into_iter()
@@ -192,7 +192,7 @@ impl RedditClient {
         &self,
         mut path: PathBuf,
         post: Arc<Post>,
-    ) -> Result<PathBuf, WallpaperError> {
+    ) -> Result<String, WallpaperError> {
         if !path.is_dir() {
             create_dir_all(&path).await.unwrap();
         }
@@ -214,16 +214,22 @@ impl RedditClient {
                 return Err(WallpaperError::InvalidEnding);
             }
             path.set_extension(extension);
+            
+            if path.exists() {
+                info!("skippin image {:?} since it's already present", post.title);
+                return Ok(path.file_name().unwrap().to_str().unwrap().to_owned());
+            }
             info!("saving image {:?} at {:?}", post.title, path);
 
             let mut file = File::create(&path).await.unwrap();
-
             let mut body_stream = resp.bytes_stream();
             while let Some(chunk) = body_stream.next().await {
                 let chunk = chunk.unwrap();
                 file.write_all(&chunk).await.unwrap();
             }
-            Ok(path)
+
+            // TODO: ugly
+            Ok(path.file_name().unwrap().to_str().unwrap().to_owned())
         })
         .await
         .unwrap()

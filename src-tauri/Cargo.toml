@@ -27,6 +27,7 @@ toml = "*"
 wallpaper = {git="https://github.com/andr35/wallpaper.rs.git"}
 env_logger = "*"
 thiserror = "*"
+image = "*"
 
 [features]
 # by default Tauri runs in production mode
