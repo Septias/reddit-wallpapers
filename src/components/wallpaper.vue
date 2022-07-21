@@ -16,8 +16,12 @@ const props = defineProps({
     required: true,
   },
 })
+let thumbnail_path
+  = await convertFileSrc(await join(props.basePath, 'thumbnails', props.post.file_name))
 
-const thumbnail_path = await convertFileSrc(await join(props.basePath, 'thumbnails', props.post.file_name))
+watch(props.post, async() => {
+  thumbnail_path = await convertFileSrc(await join(props.basePath, 'thumbnails', props.post.file_name))
+})
 
 function select_wallpaper() {
   invoke('select_wallpaper', { name: props.post.name })

@@ -134,28 +134,64 @@ impl WallpaperManager {
     /// Fetch all new wallpapers from reddit api
     pub async fn fetch_recent_wallpapers(&self) {
         let mut new_last_seen = self.last_seen_wallpaper.lock().unwrap().clone();
-
+        
+        // request all new post
         let posts = self
             .reddit_client
             .fetch_saved_until(&mut new_last_seen)
-            .await
-            .into_iter()
-            .filter(|post| post.subreddit == "wallpaper")
-            .filter(|post| {
-                let valid = VALID_EXTENSION.contains(&post.url.split('.').last().unwrap());
-                if !valid {
-                    warn!(
-                        "not adding resource {}, because it has no valid picture-ending",
-                        post.url
-                    );
-                }
-                valid
-            })
-            .map(Arc::from)
-            .collect::<Vec<_>>();
+            .await;
+        
+        // filter posts
+        let posts = {
+            let wallpapers = self.wallpapers.lock().unwrap();
+            posts.into_iter()
+                .filter(|post| {
+                    let wallpapers_subreddit = post.subreddit == "wallpaper";
+                    let already_present = wallpapers.iter().find(|wp| wp.name == post.name).is_some();
+                    let valid_extension = VALID_EXTENSION.contains(&post.url.split('.').last().unwrap());
+                    
+                    if wallpapers_subreddit && !valid_extension {
+                        warn!(
+                            "not adding resource {}, because it has no valid picture-ending",
+                            post.url
+                        );
+                    }
 
+                    valid_extension && wallpapers_subreddit && !already_present
+                })
+                .map(Arc::from)
+                .collect::<Vec<_>>()
+        };
+
+        // download all background images
         let paths = self.reddit_client.downloader_post_images(&posts).await;
+        self.create_thumbnails(&paths).await;
+        
+        // create info for all the posts
+        posts.iter().for_each(|post| {
+            self.post_data
+                .lock()
+                .unwrap()
+                .insert(post.name.clone(), Default::default());
+        });
 
+        let wallpapers = posts.into_iter().map(|post| {
+            let post = Arc::try_unwrap(post).unwrap();
+            Arc::new(Wallpaper {
+                subreddit: post.subreddit,
+                title: post.title,
+                url: post.url,
+                file_name: paths.get(&post.name).unwrap().clone(),
+                name: post.name,
+            })
+        });
+
+        self.wallpapers.lock().unwrap().extend(wallpapers);
+        info!("new image count: {}", self.wallpapers.lock().unwrap().len());
+        *self.last_seen_wallpaper.lock().unwrap() = new_last_seen;
+    }
+
+    async fn create_thumbnails(&self, paths: &HashMap<String, String>) {
         let thumbnails_path = self.wallpaper_path().join("thumbnails");
         if !thumbnails_path.exists() {
             create_dir(&thumbnails_path).await.unwrap();
@@ -184,29 +220,6 @@ impl WallpaperManager {
         for future in futures {
             future.await.unwrap();
         }
-
-        // create info for all the posts
-        posts.iter().for_each(|post| {
-            self.post_data
-                .lock()
-                .unwrap()
-                .insert(post.name.clone(), Default::default());
-        });
-
-        let wallpapers = posts.into_iter().map(|post| {
-            let post = Arc::try_unwrap(post).unwrap();
-            Arc::new(Wallpaper {
-                subreddit: post.subreddit,
-                title: post.title,
-                url: post.url,
-                file_name: paths.get(&post.name).unwrap().clone(),
-                name: post.name,
-            })
-        });
-
-        self.wallpapers.lock().unwrap().extend(wallpapers);
-        info!("new image count: {}", self.wallpapers.lock().unwrap().len());
-        *self.last_seen_wallpaper.lock().unwrap() = new_last_seen;
     }
 
     /// Save all important data to the disc

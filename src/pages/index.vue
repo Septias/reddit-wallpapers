@@ -30,7 +30,7 @@ div.absolute.right-0.m-2.p-2.rounded.text-pink-500.cursor-pointer(@click="update
   div(class="i-carbon:cloud-download" :class="{ 'rotate': fetching }")
 
 div.p-2.wallpapers.grid.gap-2.justify-center
-  div(v-for="post in posts")
+  div(v-for="post in posts" :key="post.name")
     wallpaper(:post="post" :basePath="base_path")
 </template>
 
