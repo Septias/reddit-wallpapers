@@ -13,6 +13,7 @@ pub struct UserData {
     pub name: String,
 }
 
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Config {
     username: String,
