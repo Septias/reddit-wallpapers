@@ -52,7 +52,7 @@ impl RedditClient {
             .build()
             .unwrap();
 
-        let token = Self::get_token(&client, &config).await?;
+        let token = Self::get_token(&client, config).await?;
         Ok(Self {
             client,
             token,
@@ -182,8 +182,8 @@ impl RedditClient {
     pub async fn downloader_post_images(&self, posts: &[Arc<Post>]) -> HashMap<String, String> {
         let post_to_path = Arc::new(Mutex::new(HashMap::new()));
         let tasks = posts
-            .into_iter()
-            .map(|post| get_and_add_to_map(post.clone(), post_to_path.clone(), &self));
+            .iter()
+            .map(|post| get_and_add_to_map(post.clone(), post_to_path.clone(), self));
         join_all(tasks).await;
         Mutex::into_inner(Arc::try_unwrap(post_to_path).unwrap()).unwrap()
     }

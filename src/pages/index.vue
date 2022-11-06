@@ -8,8 +8,6 @@ if (!await invoke('is_configured')) {
 }
 
 const posts = ref(await invoke('get_cached_wallpapers') as Post[])
-
-const fetching = ref(false)
 const base_path: string = await invoke('get_wallpapers_path')
 
 interface Post {
@@ -19,10 +17,8 @@ interface Post {
 }
 
 async function update() {
-  fetching.value = true
   await invoke('fetch_recent')
   posts.value = await invoke('get_cached_wallpapers')
-  fetching.value = false
 }
 
 onMounted(() => {

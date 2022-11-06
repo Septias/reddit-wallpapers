@@ -175,7 +175,7 @@ impl WallpaperManager {
                 .filter(|post| {
                     let wallpapers_subreddit = post.subreddit == "wallpaper";
                     let already_present =
-                        wallpapers.iter().find(|wp| wp.name == post.name).is_some();
+                        wallpapers.iter().any(|wp| *wp.name == post.name);
                     let valid_extension =
                         VALID_EXTENSION.contains(&post.url.split('.').last().unwrap());
 
@@ -257,7 +257,10 @@ impl WallpaperManager {
     pub async fn set_config(&self, config: Config) -> Result<(), WallpaperError> {
         let client = RedditClient::new(&config).await?;
         *self.reddit_client.lock().unwrap() = Some(client);
-        fs::try_exists(&config.path).map_err(|_| WallpaperError::PathDoesNotExist)?;
+        fs::try_exists(&config.path)?;
+        if config.path.to_str().unwrap() == "" {
+            return Err(WallpaperError::NoRootPaths)
+        }
         fs::write("wallpapers.toml", toml::to_string(&config).unwrap());
         *self.config.lock().unwrap() = config;
         info!("saving new user data");
