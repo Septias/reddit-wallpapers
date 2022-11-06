@@ -66,12 +66,9 @@ async fn set_config(
 }
 
 #[tauri::command]
-fn is_configured(
-    wm: tauri::State<'_, Arc<WallpaperManager>>,
-) -> bool {
+fn is_configured(wm: tauri::State<'_, Arc<WallpaperManager>>) -> bool {
     wm.is_configured().into()
 }
-
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

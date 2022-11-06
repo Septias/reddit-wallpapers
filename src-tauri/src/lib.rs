@@ -2,7 +2,7 @@
 use client::ClientError;
 use json::JsonValue;
 use serde::{Deserialize, Serialize};
-use std::{path::PathBuf, io};
+use std::{io, path::PathBuf};
 use thiserror::Error;
 pub mod client;
 pub mod wallpaper_manager;
@@ -64,13 +64,13 @@ struct TokenInfo {
 pub enum WallpaperError {
     #[error("The image-file does not a have a valid image-ending")]
     InvalidEnding,
-    
+
     #[error("The given path does not exist")]
     PathDoesNotExist,
 
     #[error("No Root Paths")]
     NoRootPaths,
-    
+
     #[error("Client Error")]
-    Client(#[from] ClientError)
+    Client(#[from] ClientError),
 }

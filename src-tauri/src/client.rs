@@ -4,7 +4,7 @@ use reqwest::{Client, ClientBuilder};
 use serde::Serialize;
 use std::{
     collections::HashMap,
-    path::{PathBuf},
+    path::PathBuf,
     sync::{Arc, Mutex},
 };
 use thiserror::Error;

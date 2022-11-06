@@ -1,6 +1,6 @@
 #![allow(unused)]
 use futures_util::{future::join_all, lock::MutexGuard};
-use image::io::{Reader};
+use image::io::Reader;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use tauri::async_runtime::spawn_blocking;
@@ -9,13 +9,15 @@ use tokio::fs::create_dir;
 
 use crate::{
     client::{ClientError, RedditClient},
-    Config, Post, VALID_EXTENSION, WallpaperError,
+    Config, Post, WallpaperError, VALID_EXTENSION,
 };
 use std::{
+    any::Any,
     collections::HashMap,
     fs::{self, read_to_string, File},
+    io,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex}, any::Any, io,
+    sync::{Arc, Mutex},
 };
 
 #[derive(Default, Serialize, Deserialize, Clone)]
@@ -262,7 +264,7 @@ impl WallpaperManager {
         Ok(())
     }
 
-    pub fn is_configured(&self) -> bool{
+    pub fn is_configured(&self) -> bool {
         self.reddit_client.lock().unwrap().is_some()
     }
 
