@@ -23,5 +23,10 @@
       "~/*": ["src/*"]
     }
   },
+  "vueCompilerOptions": {
+    "plugins": [
+      "@volar/vue-language-plugin-pug"
+    ]
+  },
   "exclude": ["dist", "node_modules", "cypress"],
 }
