@@ -3,19 +3,20 @@
     windows_subsystem = "windows"
 )]
 
-use app::{
+use reddit_wallpapers::{
+    client::ClientError,
     wallpaper_manager::{Wallpaper, WallpaperManager},
-    Post,
+    Config, Post, WallpaperError,
 };
-use std::{fs::read_to_string, path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 use tauri::generate_context;
 
 #[tauri::command]
 async fn get_all_wallpapers(
     state: tauri::State<'_, Arc<WallpaperManager>>,
-) -> Result<Vec<Post>, ()> {
+) -> Result<Vec<Post>, ClientError> {
     let posts = state.fetch_all_wallpapers().await;
-    Ok(posts)
+    posts
 }
 
 #[tauri::command]
@@ -33,9 +34,8 @@ async fn get_cached_wallpapers(
 }
 
 #[tauri::command]
-async fn fetch_recent(wm: tauri::State<'_, Arc<WallpaperManager>>) -> Result<(), ()> {
-    wm.fetch_recent_wallpapers().await;
-    Ok(())
+async fn fetch_recent(wm: tauri::State<'_, Arc<WallpaperManager>>) -> Result<(), ClientError> {
+    wm.fetch_recent_wallpapers().await
 }
 
 #[tauri::command]
@@ -48,27 +48,39 @@ async fn select_wallpaper(
 }
 
 #[tauri::command]
-async fn get_wallpapers_path(
-    wm: tauri::State<'_, Arc<WallpaperManager>>,
-) -> Result<String, ()> {
+async fn get_wallpapers_path(wm: tauri::State<'_, Arc<WallpaperManager>>) -> Result<String, ()> {
     Ok(wm.wallpaper_path().to_str().unwrap().to_owned())
+}
+
+#[tauri::command]
+async fn get_config(wm: tauri::State<'_, Arc<WallpaperManager>>) -> Result<Config, ()> {
+    Ok(wm.config.lock().unwrap().clone())
+}
+
+#[tauri::command]
+async fn set_config(
+    wm: tauri::State<'_, Arc<WallpaperManager>>,
+    new_config: Config,
+) -> Result<(), WallpaperError> {
+    wm.set_config(new_config).await
+}
+
+#[tauri::command]
+fn is_configured(
+    wm: tauri::State<'_, Arc<WallpaperManager>>,
+) -> bool {
+    wm.is_configured().into()
 }
 
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> anyhow::Result<()> {
     env_logger::init();
 
-    let config = toml::from_str(
-        &read_to_string("./wallpapers.toml")
-            .expect("you need a configuration file wallpapers.toml"),
-    )
-    .unwrap();
-
     let wm = Arc::new(if PathBuf::from("./cache.json").exists() {
-        WallpaperManager::from_cache(config)
+        WallpaperManager::from_cache().await
     } else {
-        WallpaperManager::new(config)
+        WallpaperManager::new().await
     });
 
     let wm_clone = wm.clone();
@@ -79,13 +91,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             get_cached_wallpapers,
             select_wallpaper,
             fetch_recent,
-            get_wallpapers_path
+            get_wallpapers_path,
+            get_config,
+            set_config,
+            is_configured
         ])
         .build(generate_context!())
         .expect("error while running tauri application");
 
     app.run(move |_app_handle, e| {
-        if let tauri::RunEvent::CloseRequested { .. } = e {
+        if let tauri::RunEvent::Exit { .. } = e {
             wm_clone.save();
         }
     });

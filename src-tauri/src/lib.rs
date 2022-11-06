@@ -1,6 +1,8 @@
+#![feature(fs_try_exists)]
+use client::ClientError;
 use json::JsonValue;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::{path::PathBuf, io};
 use thiserror::Error;
 pub mod client;
 pub mod wallpaper_manager;
@@ -13,12 +15,11 @@ pub struct UserData {
     pub name: String,
 }
 
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct Config {
     username: String,
     password: String,
-    path: PathBuf,
+    pub path: PathBuf,
     client_id: String,
     client_secret: String,
 }
@@ -59,8 +60,17 @@ struct TokenInfo {
     access_token: String,
 }
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Serialize)]
 pub enum WallpaperError {
     #[error("The image-file does not a have a valid image-ending")]
     InvalidEnding,
+    
+    #[error("The given path does not exist")]
+    PathDoesNotExist,
+
+    #[error("No Root Paths")]
+    NoRootPaths,
+    
+    #[error("Client Error")]
+    Client(#[from] ClientError)
 }

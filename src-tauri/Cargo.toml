@@ -1,24 +1,21 @@
 [package]
-name = "app"
+name = "reddit-wallpapers"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
-license = ""
-repository = ""
-default-run = "app"
+description = "Reddit Wallpapers"
+authors = ["Sebastian "]
+repository = "https://github.com/Septias/reddit-wallpapers"
+default-run = "reddit-wallpapers"
 edition = "2021"
 rust-version = "1.57"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [build-dependencies]
-tauri-build = { version = "1.0.0-rc.4", features = [] }
+tauri-build = { version = "1.1.1", features = [] }
 
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.0.0-rc.4", features = ["api-all", "devtools"] }
-reqwest = { version = "*", features = ["json", "stream"] }
+tauri = { version = "1.1.1", features = ["api-all", "devtools"] }
+reqwest = { version = "^0.11", features = ["json", "stream"] }
 tokio = { version = "1", features = ["full"] }
 log = "*"
 json = "*"
@@ -28,6 +25,7 @@ wallpaper = {git="https://github.com/andr35/wallpaper.rs.git"}
 env_logger = "*"
 thiserror = "*"
 image = "*"
+anyhow = "*"
 
 [features]
 # by default Tauri runs in production mode

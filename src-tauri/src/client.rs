@@ -1,11 +1,13 @@
 use futures_util::{future::join_all, StreamExt};
 use log::{debug, info, warn};
 use reqwest::{Client, ClientBuilder};
+use serde::Serialize;
 use std::{
     collections::HashMap,
-    path::PathBuf,
+    path::{PathBuf},
     sync::{Arc, Mutex},
 };
+use thiserror::Error;
 use tokio::{
     self,
     fs::{create_dir_all, File},
@@ -16,8 +18,15 @@ use crate::{Config, Post, TokenInfo, UserData, WallpaperError, VALID_EXTENSION};
 
 pub struct RedditClient {
     client: Client,
-    token: Arc<Mutex<Option<String>>>,
-    config: Arc<Config>,
+    token: String,
+    base_path: PathBuf,
+    username: String,
+}
+
+#[derive(Error, Debug, Serialize)]
+pub enum ClientError {
+    #[error("Bad credentials")]
+    BadCredetials,
 }
 
 async fn get_and_add_to_map(
@@ -26,7 +35,7 @@ async fn get_and_add_to_map(
     client: &RedditClient,
 ) {
     let response = client
-        .download_post_image(client.config.path.clone(), post.clone())
+        .download_post_image(client.base_path.clone(), post.clone())
         .await;
 
     if let Ok(path_buf) = response {
@@ -37,20 +46,22 @@ async fn get_and_add_to_map(
 }
 
 impl RedditClient {
-    pub fn new(config: Arc<Config>) -> Self {
+    pub async fn new(config: &Config) -> Result<Self, ClientError> {
         let client = ClientBuilder::new()
             .user_agent("Wallpaper downloader")
             .build()
             .unwrap();
 
-        Self {
+        let token = Self::get_token(&client, &config).await?;
+        Ok(Self {
             client,
-            token: Arc::new(Mutex::new(None)),
-            config,
-        }
+            token,
+            base_path: config.path.clone(),
+            username: config.username.clone(),
+        })
     }
 
-    async fn get_token(client: &Client, config: &Config) -> Result<String, serde_json::Error> {
+    async fn get_token(client: &Client, config: &Config) -> Result<String, ClientError> {
         let mut map = HashMap::new();
         map.insert("grant_type", "password");
         map.insert("username", &config.username);
@@ -60,24 +71,19 @@ impl RedditClient {
 
         let resp = client
             .post("https://www.reddit.com/api/v1/access_token")
-            .basic_auth(config.client_id.clone(), Some(config.client_secret.clone()))
+            .basic_auth(&config.client_id, Some(&config.client_secret))
             .form(&form_data);
 
         let resp = resp.send().await.unwrap();
-        let t: TokenInfo = serde_json::from_str(&resp.text().await.unwrap()).unwrap();
+        let t: TokenInfo = serde_json::from_str(&resp.text().await.unwrap())
+            .map_err(|_| ClientError::BadCredetials)?;
         Ok(t.access_token)
     }
 
     async fn create_request_with_auth(&self, url: &str, root: &str) -> reqwest::RequestBuilder {
-        if self.token.lock().unwrap().is_none() {
-            *self.token.lock().unwrap() =
-                Some(Self::get_token(&self.client, &self.config).await.unwrap());
-        }
-
-        self.client.get(String::from(root) + url).header(
-            "Authorization",
-            format!("bearer {}", self.token.lock().unwrap().as_ref().unwrap()),
-        )
+        self.client
+            .get(String::from(root) + url)
+            .header("Authorization", format!("bearer {}", self.token))
     }
 
     pub async fn fetch_userdata(&self) -> UserData {
@@ -90,7 +96,7 @@ impl RedditClient {
         serde_json::from_str(&response.text().await.unwrap()).unwrap()
     }
 
-    /// fetch all saved posts until `until` is found in one of the requests
+    /// Fetch all saved posts until `until` is found in one of the requests
     /// changes until so that it has the id of the newest saved post after
     /// this method finished executing
     pub async fn fetch_saved_until(&self, until: &mut String) -> Vec<Post> {
@@ -113,7 +119,7 @@ impl RedditClient {
             debug!("Requesting saved posts with after: {:?}", after);
             let saved = self
                 .create_request_with_auth(
-                    &format!("user/{}/saved", self.config.username),
+                    &format!("user/{}/saved", self.username),
                     &String::from("https://oauth.reddit.com/"),
                 )
                 .await
@@ -167,17 +173,13 @@ impl RedditClient {
         all_children
     }
 
-
     /// gets all posts the user saved
     pub async fn fetch_all_saved_posts(&self) -> Vec<Post> {
         self.fetch_saved_until(&mut "".to_owned()).await
     }
 
     /// returns a a hashmap which maps post-ids to the image-paths
-    pub async fn downloader_post_images(
-        &self,
-        posts: &[Arc<Post>],
-    ) -> HashMap<String, String> {
+    pub async fn downloader_post_images(&self, posts: &[Arc<Post>]) -> HashMap<String, String> {
         let post_to_path = Arc::new(Mutex::new(HashMap::new()));
         let tasks = posts
             .into_iter()
@@ -185,7 +187,6 @@ impl RedditClient {
         join_all(tasks).await;
         Mutex::into_inner(Arc::try_unwrap(post_to_path).unwrap()).unwrap()
     }
-
 
     /// download the image contained in the post
     pub async fn download_post_image(
@@ -214,7 +215,7 @@ impl RedditClient {
                 return Err(WallpaperError::InvalidEnding);
             }
             path.set_extension(extension);
-            
+
             if path.exists() {
                 info!("skippin image {:?} since it's already present", post.title);
                 return Ok(path.file_name().unwrap().to_str().unwrap().to_owned());

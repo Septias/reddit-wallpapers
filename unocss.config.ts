@@ -13,6 +13,12 @@ import {
 import extractorPug from '@unocss/extractor-pug'
 
 export default defineConfig({
+  theme: {
+    colors: {
+      primary: 'var(--primary)',
+      primaryl: 'var(--primary-l)',
+    },
+  },
   presets: [
     presetUno(),
     presetAttributify(),
