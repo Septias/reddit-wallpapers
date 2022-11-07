@@ -1,6 +1,6 @@
 # Reddit Wallpapers
 
-Application to set wallpapers from reddit as desktop-background.
+Application to set wallpapers from reddit as desktop-background. Just bookmark your favorite wallpapers from r/wallpapers and they will show up ready to be selected!
 
 ## Usage
 - Build the project
