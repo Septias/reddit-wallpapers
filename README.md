@@ -5,7 +5,9 @@ Application to set wallpapers from reddit as desktop-background. Just bookmark y
 ## Usage 
 Build the project yourself with vue & rust or just download one the prebuild [releases](https://github.com/Septias/reddit-wallpapers/releases).
 You then need to create a `user-script` for reddit which which allows this program to fetch your saved posts.
-Nice tutorial on how to create a user-script can be found [here](https://github.com/reddit-archive/reddit/wiki/OAuth2-Quick-Start-Example)
+Nice tutorial on how to create a `user-script` can be found [here](https://github.com/reddit-archive/reddit/wiki/OAuth2-Quick-Start-Example)
+
+If you have any further questions feel free to contact me on discord Septias#1614
 
 ## Architecture
 ### Backend
