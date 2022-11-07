@@ -18,6 +18,7 @@ const router = useRouter()
 async function save() {
   try {
     await invoke('set_config', { newConfig: config })
+    console.log('login success')
     router.push('/')
   }
   catch (e: any) {
@@ -33,6 +34,8 @@ const is_equal = computed(() => JSON.stringify(reference) === JSON.stringify(con
 
 <template lang="pug">
 .flex.justify-center.items-center.h-screen
+  router-link.absolute.top-0.left-0.bg-primaryl.p-1.rounded.m-1(to="/")
+    div.text-white.i-carbon-home
   .border.rounded-xl.p-2.text-white.flex.flex-col.custom-width.w-max
     div.flex.justify-between.items-center
       h1.text-xl.font-bold Config
@@ -43,7 +46,7 @@ const is_equal = computed(() => JSON.stringify(reference) === JSON.stringify(con
     label password
     input.input.mb-2(v-model="config.password")
     label path
-    input.input.mb-2(v-model="config.path" :contenteditable="first_setup")
+    input.input.mb-2(v-model="config.path" :disabled="!first_setup")
     label client-id
     input.input.mb-2(v-model="config.client_id")
     label client-secret

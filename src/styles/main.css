@@ -1,6 +1,7 @@
 :root {
   --primary: #22272e;
   --primary-l: #2d333b;
+  --accent: #be185d;
 }
 
 html,
@@ -17,12 +18,11 @@ body,
 }
 
 #nprogress .bar {
-  background: rgb(13, 148, 136);
-  opacity: 0.75;
+  background: var(--accent);
   position: fixed;
   z-index: 1031;
   top: 0;
   left: 0;
   width: 100%;
-  height: 2px;
+  height: 3px;
 }

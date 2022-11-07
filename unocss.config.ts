@@ -17,6 +17,7 @@ export default defineConfig({
     colors: {
       primary: 'var(--primary)',
       primaryl: 'var(--primary-l)',
+      accent: 'var(--accent)',
     },
   },
   presets: [
@@ -43,5 +44,4 @@ export default defineConfig({
     extractorSplit,
     extractorPug(),
   ],
-  safelist: 'prose prose-sm m-auto text-left'.split(' '),
 })
