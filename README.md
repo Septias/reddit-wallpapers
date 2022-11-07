@@ -1,6 +1,6 @@
 # Reddit Wallpapers
 
-Application to set wallpapers from reddit as desktop-background. Just bookmark your favorite wallpapers from r/wallpapers and they will show up ready to be selected!
+Application to set wallpapers from reddit as desktop-background. Just bookmark your favourite wallpapers from r/wallpapers and they will show up ready to be selected!
 
 ## Usage 
 Build the project yourself with vue & rust or just download one the prebuild [releases](https://github.com/Septias/reddit-wallpapers/releases).
