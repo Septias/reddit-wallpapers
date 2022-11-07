@@ -2,7 +2,7 @@
 use client::ClientError;
 use json::JsonValue;
 use serde::{Deserialize, Serialize};
-use std::{path::PathBuf, io};
+use std::{io, path::PathBuf};
 use thiserror::Error;
 pub mod client;
 pub mod wallpaper_manager;
@@ -61,10 +61,8 @@ struct TokenInfo {
 }
 
 mod as_string {
-    use serde::ser::{Serialize, Serializer};
     use core::fmt::Debug;
-    // Serialize to a JSON string, then serialize the string to the output
-    // format.
+    use serde::ser::{Serialize, Serializer};
     pub fn serialize<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
     where
         T: Debug,
@@ -87,6 +85,6 @@ pub enum WallpaperError {
     Client(#[from] ClientError),
 
     #[error(transparent)]
-    #[serde(with="as_string")]
-    Io(#[from] io::Error)
+    #[serde(with = "as_string")]
+    Io(#[from] io::Error),
 }
