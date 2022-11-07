@@ -2,21 +2,12 @@
 
 Application to set wallpapers from reddit as desktop-background. Just bookmark your favorite wallpapers from r/wallpapers and they will show up ready to be selected!
 
-## Usage
-- Build the project
-- Create a "wallpapers.toml" file as config-file with the following content:
- 
-```toml
-username = "<reddit username>"
-password = "<reddit password>"
-path = "/home/.../wallpapers/" # absolute path
-client_id = "<your reddit-client-key>" # create this at https://www.reddit.com/prefs/apps
-client_secret = "your client-secret"
-```
+## Usage 
+Build the project yourself with vue & rust or just download one the prebuild [releases](https://github.com/Septias/reddit-wallpapers/releases).
+You then need to create a `user-script` for reddit which which allows this program to fetch your saved posts.
+Nice tutorial on how to create a user-script can be found [here](https://github.com/reddit-archive/reddit/wiki/OAuth2-Quick-Start-Example)
 
-Nice tutorial on how to create a user-script: https://github.com/reddit-archive/reddit/wiki/OAuth2-Quick-Start-Example
-
-## Used Technologies
+## Architecture
 ### Backend
 - Rust
 - Tauri
