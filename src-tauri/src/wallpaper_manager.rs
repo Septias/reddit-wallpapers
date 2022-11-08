@@ -1,7 +1,13 @@
 use image::io::Reader;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
-use tauri::{api::{file::read_string, path::{config_dir, cache_dir}}, async_runtime::spawn_blocking};
+use tauri::{
+    api::{
+        file::read_string,
+        path::{cache_dir, config_dir},
+    },
+    async_runtime::spawn_blocking,
+};
 use tokio::fs::create_dir;
 
 use crate::{
@@ -11,7 +17,7 @@ use crate::{
 use std::{
     collections::HashMap,
     fs::{self, create_dir_all},
-    path::{PathBuf},
+    path::PathBuf,
     sync::{Arc, Mutex},
 };
 
@@ -67,7 +73,7 @@ impl WallpaperManager {
     pub async fn new() -> Self {
         // load config
         let config = Self::load_config().unwrap_or_default();
-        
+
         // create client using config
         let reddit_client = RedditClient::new(&config).await;
         if let Err(e) = &reddit_client {
@@ -85,8 +91,11 @@ impl WallpaperManager {
         }
     }
 
-    fn config_path() -> Option<PathBuf>{
-        config_dir().map(|mut path| { path.push("reddit-wallpapers/wallpapers.toml"); path})
+    fn config_path() -> Option<PathBuf> {
+        config_dir().map(|mut path| {
+            path.push("reddit-wallpapers/wallpapers.toml");
+            path
+        })
     }
 
     /// Tries to read config from filesystem or returns default config
@@ -116,21 +125,30 @@ impl WallpaperManager {
         }
         Ok(())
     }
-    
-    fn cache_path() -> Option<PathBuf>{
-        cache_dir().map(|mut path| { path.push("reddit-wallapers/cache.json"); path})
+
+    fn cache_path() -> Option<PathBuf> {
+        cache_dir().map(|mut path| {
+            path.push("reddit-wallapers/cache.json");
+            path
+        })
     }
 
-    fn load_cache() -> Option<(Mutex<HashMap<String, PostInfo>>, Mutex<Vec<Arc<Wallpaper>>>, Mutex<String>)> {
+    fn load_cache() -> Option<(
+        Mutex<HashMap<String, PostInfo>>,
+        Mutex<Vec<Arc<Wallpaper>>>,
+        Mutex<String>,
+    )> {
         if let Some(path) = Self::cache_path() {
             let data = read_string(path)
                 .ok()
-                .map(|content| serde_json::from_str::<CachData>(&content).ok())
-                .flatten()
-                .map(
-                    |a| (Mutex::new(a.post_data),
-                    Mutex::new(a.posts.into_iter().map(Arc::new).collect::<Vec<_>>()), Mutex::new(a.last_seen_wallpaper)),
-                );
+                .and_then(|content| serde_json::from_str::<CachData>(&content).ok())
+                .map(|a| {
+                    (
+                        Mutex::new(a.post_data),
+                        Mutex::new(a.posts.into_iter().map(Arc::new).collect::<Vec<_>>()),
+                        Mutex::new(a.last_seen_wallpaper),
+                    )
+                });
             info!("successfully loaded cache");
             data
         } else {
@@ -140,7 +158,7 @@ impl WallpaperManager {
     }
 
     /// Save cache to disk
-    pub fn save_cache(&self) -> anyhow::Result<()>{
+    pub fn save_cache(&self) -> anyhow::Result<()> {
         if let Some(path) = Self::cache_path() {
             info!("saving cache at {path:?}");
             let parent = path.parent().unwrap();
@@ -206,12 +224,11 @@ impl WallpaperManager {
 
     /// Fetch all new wallpapers from reddit app
     pub async fn fetch_recent_wallpapers(&self) -> Result<(), ClientError> {
-        
         let client = self.get_client()?;
         // request all new post
         let posts = {
             let data = &self.last_seen_wallpaper.lock().unwrap().clone();
-            let (posts ,new_last_senn)= client.fetch_saved_until(&data).await;
+            let (posts, new_last_senn) = client.fetch_saved_until(data).await;
             *self.last_seen_wallpaper.lock().unwrap() = new_last_senn;
             posts
         };
@@ -308,7 +325,7 @@ impl WallpaperManager {
         if config.path.to_str().unwrap() == "" {
             return Err(WallpaperError::NoRootPaths);
         }
-        Self::save_config(&config).map_err(|e | warn!("{e}")).ok();
+        Self::save_config(&config).map_err(|e| warn!("{e}")).ok();
         *self.config.lock().unwrap() = config;
         Ok(())
     }
@@ -316,5 +333,4 @@ impl WallpaperManager {
     pub fn is_configured(&self) -> bool {
         self.reddit_client.lock().unwrap().is_some()
     }
-
 }

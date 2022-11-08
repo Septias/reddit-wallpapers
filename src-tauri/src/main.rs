@@ -9,7 +9,7 @@ use reddit_wallpapers::{
     wallpaper_manager::{Wallpaper, WallpaperManager},
     Config, Post, WallpaperError,
 };
-use std::{sync::Arc};
+use std::sync::Arc;
 use tauri::generate_context;
 
 #[tauri::command]

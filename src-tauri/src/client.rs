@@ -174,7 +174,7 @@ impl RedditClient {
 
     /// gets all posts the user saved
     pub async fn fetch_all_saved_posts(&self) -> Vec<Post> {
-        self.fetch_saved_until(&mut "".to_owned()).await.0
+        self.fetch_saved_until("").await.0
     }
 
     /// returns a a hashmap which maps post-ids to the image-paths
