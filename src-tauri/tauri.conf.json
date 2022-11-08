@@ -57,11 +57,7 @@
         "asset": true
       },
       "fs": {
-        "createDir": true,
-        "readDir": true,
-        "readFile": true,
-        "writeFile": true,
-        "exists": true
+        "all": true
       },
       "path": {
         "all": true
