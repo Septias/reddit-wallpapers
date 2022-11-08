@@ -99,7 +99,7 @@ impl RedditClient {
     /// Fetch all saved posts until `until` is found in one of the requests
     /// changes until so that it has the id of the newest saved post after
     /// this method finished executing
-    pub async fn fetch_saved_until(&self, until: &mut String) -> Vec<Post> {
+    pub async fn fetch_saved_until(&self, until: &str) -> (Vec<Post>, String) {
         let mut all_children = vec![];
 
         // after is a field accepted by reddit api
@@ -168,14 +168,13 @@ impl RedditClient {
                 break;
             }
         }
-        *until = new_until;
         info!("fetched {} posts", all_children.len());
-        all_children
+        (all_children, new_until)
     }
 
     /// gets all posts the user saved
     pub async fn fetch_all_saved_posts(&self) -> Vec<Post> {
-        self.fetch_saved_until(&mut "".to_owned()).await
+        self.fetch_saved_until(&mut "".to_owned()).await.0
     }
 
     /// returns a a hashmap which maps post-ids to the image-paths

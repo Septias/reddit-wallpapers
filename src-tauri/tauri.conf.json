@@ -55,11 +55,21 @@
         ],
         "all": true,
         "asset": true
+      },
+      "fs": {
+        "createDir": true,
+        "readDir": true,
+        "readFile": true,
+        "writeFile": true,
+        "exists": true
+      },
+      "path": {
+        "all": true
       }
     },
     "windows": [
       {
-        "title": "Redd-Wallpapers",
+        "title": "Reddit Wallpapers",
         "width": 800,
         "height": 600,
         "resizable": true,

@@ -1,10 +1,7 @@
-#![allow(unused)]
-use futures_util::{future::join_all, lock::MutexGuard};
 use image::io::Reader;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
-use tauri::async_runtime::spawn_blocking;
-use thiserror::Error;
+use tauri::{api::{file::read_string, path::{config_dir, cache_dir}}, async_runtime::spawn_blocking};
 use tokio::fs::create_dir;
 
 use crate::{
@@ -12,11 +9,9 @@ use crate::{
     Config, Post, WallpaperError, VALID_EXTENSION,
 };
 use std::{
-    any::Any,
     collections::HashMap,
-    fs::{self, read_to_string, File},
-    io,
-    path::{Path, PathBuf},
+    fs::{self, create_dir_all},
+    path::{PathBuf},
     sync::{Arc, Mutex},
 };
 
@@ -66,49 +61,98 @@ impl From<&WallpaperManager> for CachData {
 }
 
 impl WallpaperManager {
+    /// Create a new WallpaperManager
+    /// Tries to load cache from filesystem
+    /// Tries to load config from filesystem
     pub async fn new() -> Self {
-        let config = read_to_string("./wallpapers.toml")
-            .ok()
-            .map(|content| toml::from_str(&content).unwrap())
-            .unwrap_or_default();
+        // load config
+        let config = Self::load_config().unwrap_or_default();
+        
+        // create client using config
         let reddit_client = RedditClient::new(&config).await;
         if let Err(e) = &reddit_client {
             warn!("{e}")
         }
+
+        // load post_data and wallpapers
+        let (post_data, wallpapers, last_seen_wallpaper) = Self::load_cache().unwrap_or_default();
         Self {
             reddit_client: Mutex::new(reddit_client.ok()),
             config: Mutex::new(config),
-            post_data: Default::default(),
-            wallpapers: Mutex::new(vec![]),
-            last_seen_wallpaper: Mutex::new("".to_string()),
+            post_data,
+            wallpapers,
+            last_seen_wallpaper,
         }
     }
 
-    pub async fn from_cache() -> Self {
-        let config = read_to_string("./wallpapers.toml")
-            .ok()
-            .map(|content| toml::from_str(&content).unwrap())
-            .unwrap_or_default();
-        let cach_data: CachData =
-            serde_json::from_str(&read_to_string("./cache.json").expect("no config file found"))
-                .unwrap();
-        let reddit_client = RedditClient::new(&config).await;
-        if let Err(e) = &reddit_client {
-            warn!("{e}")
+    fn config_path() -> Option<PathBuf>{
+        config_dir().map(|mut path| { path.push("reddit-wallpapers/wallpapers.toml"); path})
+    }
+
+    /// Tries to read config from filesystem or returns default config
+    fn load_config() -> Option<Config> {
+        if let Some(path) = Self::config_path() {
+            let data = read_string(path)
+                .ok()
+                .map(|content| toml::from_str::<Config>(&content).unwrap());
+            info!("successfully loaded config");
+            data
+        } else {
+            warn!("can't create config path");
+            None
         }
-        Self {
-            reddit_client: Mutex::new(reddit_client.ok()),
-            config: Mutex::new(config),
-            post_data: Mutex::new(cach_data.post_data),
-            wallpapers: Mutex::new(
-                cach_data
-                    .posts
-                    .into_iter()
-                    .map(Arc::new)
-                    .collect::<Vec<_>>(),
-            ),
-            last_seen_wallpaper: Mutex::new(cach_data.last_seen_wallpaper),
+    }
+
+    fn save_config(config: &Config) -> anyhow::Result<()> {
+        if let Some(path) = Self::config_path() {
+            info!("saving config at {path:?}");
+            let parent = path.parent().unwrap();
+            if !parent.is_dir() {
+                create_dir_all(parent)?;
+            }
+            fs::write(path, toml::to_string(&config).unwrap()).unwrap();
+        } else {
+            warn!("can't create config path");
         }
+        Ok(())
+    }
+    
+    fn cache_path() -> Option<PathBuf>{
+        cache_dir().map(|mut path| { path.push("reddit-wallapers/cache.json"); path})
+    }
+
+    fn load_cache() -> Option<(Mutex<HashMap<String, PostInfo>>, Mutex<Vec<Arc<Wallpaper>>>, Mutex<String>)> {
+        if let Some(path) = Self::cache_path() {
+            let data = read_string(path)
+                .ok()
+                .map(|content| serde_json::from_str::<CachData>(&content).ok())
+                .flatten()
+                .map(
+                    |a| (Mutex::new(a.post_data),
+                    Mutex::new(a.posts.into_iter().map(Arc::new).collect::<Vec<_>>()), Mutex::new(a.last_seen_wallpaper)),
+                );
+            info!("successfully loaded cache");
+            data
+        } else {
+            warn!("can't create cache path");
+            None
+        }
+    }
+
+    /// Save cache to disk
+    pub fn save_cache(&self) -> anyhow::Result<()>{
+        if let Some(path) = Self::cache_path() {
+            info!("saving cache at {path:?}");
+            let parent = path.parent().unwrap();
+            if !parent.exists() {
+                create_dir_all(parent)?;
+            }
+            let data = serde_json::to_string(&CachData::from(self)).unwrap();
+            fs::write(path, data)?;
+        } else {
+            warn!("can't create config path");
+        }
+        Ok(())
     }
 
     /// Fetch all wallpapers
@@ -162,10 +206,15 @@ impl WallpaperManager {
 
     /// Fetch all new wallpapers from reddit app
     pub async fn fetch_recent_wallpapers(&self) -> Result<(), ClientError> {
-        let mut new_last_seen = self.last_seen_wallpaper.lock().unwrap().clone();
+        
         let client = self.get_client()?;
         // request all new post
-        let posts = client.fetch_saved_until(&mut new_last_seen).await;
+        let posts = {
+            let data = &self.last_seen_wallpaper.lock().unwrap().clone();
+            let (posts ,new_last_senn)= client.fetch_saved_until(&data).await;
+            *self.last_seen_wallpaper.lock().unwrap() = new_last_senn;
+            posts
+        };
 
         // filter posts
         let posts = {
@@ -216,7 +265,6 @@ impl WallpaperManager {
 
         self.wallpapers.lock().unwrap().extend(wallpapers);
         info!("new image count: {}", self.wallpapers.lock().unwrap().len());
-        *self.last_seen_wallpaper.lock().unwrap() = new_last_seen;
         self.put_client(client);
         Ok(())
     }
@@ -233,7 +281,7 @@ impl WallpaperManager {
             let file_path = self.wallpaper_path().join(&file_name);
             let future = spawn_blocking(move || {
                 let single_path = thumbnails_path.join(&file_name);
-                if (single_path.exists()) {
+                if single_path.exists() {
                     return;
                 }
                 let image = Reader::open(&file_path).unwrap().decode().unwrap();
@@ -260,9 +308,8 @@ impl WallpaperManager {
         if config.path.to_str().unwrap() == "" {
             return Err(WallpaperError::NoRootPaths);
         }
-        fs::write("wallpapers.toml", toml::to_string(&config).unwrap());
+        Self::save_config(&config).map_err(|e | warn!("{e}")).ok();
         *self.config.lock().unwrap() = config;
-        info!("saving new user data");
         Ok(())
     }
 
@@ -270,9 +317,4 @@ impl WallpaperManager {
         self.reddit_client.lock().unwrap().is_some()
     }
 
-    /// Save all important data to the disc
-    pub fn save(&self) {
-        let file = File::create("cache.json").unwrap();
-        serde_json::to_writer(file, &CachData::from(self));
-    }
 }

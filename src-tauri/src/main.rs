@@ -3,12 +3,13 @@
     windows_subsystem = "windows"
 )]
 
+use log::warn;
 use reddit_wallpapers::{
     client::ClientError,
     wallpaper_manager::{Wallpaper, WallpaperManager},
     Config, Post, WallpaperError,
 };
-use std::{path::PathBuf, sync::Arc};
+use std::{sync::Arc};
 use tauri::generate_context;
 
 #[tauri::command]
@@ -74,12 +75,7 @@ fn is_configured(wm: tauri::State<'_, Arc<WallpaperManager>>) -> bool {
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
 
-    let wm = Arc::new(if PathBuf::from("./cache.json").exists() {
-        WallpaperManager::from_cache().await
-    } else {
-        WallpaperManager::new().await
-    });
-
+    let wm = Arc::new(WallpaperManager::new().await);
     let wm_clone = wm.clone();
     let app = tauri::Builder::default()
         .manage(wm)
@@ -98,7 +94,7 @@ async fn main() -> anyhow::Result<()> {
 
     app.run(move |_app_handle, e| {
         if let tauri::RunEvent::Exit { .. } = e {
-            wm_clone.save();
+            wm_clone.save_cache().map_err(|e| warn!("{e}")).ok();
         }
     });
     Ok(())
