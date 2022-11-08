@@ -2,7 +2,5 @@
 # will have compiled files and executables
 /target/
 WixTools
-wallpapers.toml
 test.json
 cache.json
-wallpapers
