@@ -1,0 +1,17 @@
+name: "publish"
+on:
+  push:
+    branches:
+      - release
+
+
+jobs:
+  publish-tauri:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macos-latest, windows-latest, ubuntu-latest]
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+    - uses: JonasKruckenberg/tauri-build@v1.0.3
