@@ -1,4 +1,3 @@
-#![feature(fs_try_exists)]
 use client::ClientError;
 use json::JsonValue;
 use serde::{Deserialize, Serialize};

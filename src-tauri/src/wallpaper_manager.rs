@@ -321,7 +321,7 @@ impl WallpaperManager {
     pub async fn set_config(&self, config: Config) -> Result<(), WallpaperError> {
         let client = RedditClient::new(&config).await?;
         *self.reddit_client.lock().unwrap() = Some(client);
-        fs::try_exists(&config.path)?;
+        create_dir_all(&config.path)?;
         if config.path.to_str().unwrap() == "" {
             return Err(WallpaperError::NoRootPaths);
         }
