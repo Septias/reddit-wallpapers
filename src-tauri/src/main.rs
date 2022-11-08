@@ -73,7 +73,7 @@ fn is_configured(wm: tauri::State<'_, Arc<WallpaperManager>>) -> bool {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    env_logger::init();
+    env_logger::init(); 
 
     let wm = Arc::new(WallpaperManager::new().await);
     let wm_clone = wm.clone();
