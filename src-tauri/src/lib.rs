@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::{io, path::PathBuf};
 use thiserror::Error;
 pub mod client;
+pub mod string_serializer;
 pub mod wallpaper_manager;
 
 pub const VALID_EXTENSION: [&str; 8] = ["tif", "tiff", "bmp", "jpg", "jpeg", "png", "gif", "raw"];
@@ -59,19 +60,6 @@ struct TokenInfo {
     access_token: String,
 }
 
-mod as_string {
-    use core::fmt::Debug;
-    use serde::ser::{Serialize, Serializer};
-    pub fn serialize<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        T: Debug,
-        S: Serializer,
-    {
-        let j = format!("Io Error: {:?}", value);
-        j.serialize(serializer)
-    }
-}
-
 #[derive(Error, Debug, Serialize)]
 pub enum WallpaperError {
     #[error("The image-file does not a have a valid image-ending")]
@@ -84,6 +72,6 @@ pub enum WallpaperError {
     Client(#[from] ClientError),
 
     #[error(transparent)]
-    #[serde(with = "as_string")]
+    #[serde(with = "string_serializer")]
     Io(#[from] io::Error),
 }

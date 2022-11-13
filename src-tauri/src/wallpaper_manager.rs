@@ -225,6 +225,7 @@ impl WallpaperManager {
     /// Fetch all new wallpapers from reddit app
     pub async fn fetch_recent_wallpapers(&self) -> Result<(), ClientError> {
         let client = self.get_client()?;
+        info!("started fetching wallpapers");
         // request all new post
         let posts = {
             let data = &self.last_seen_wallpaper.lock().unwrap().clone();
@@ -281,7 +282,10 @@ impl WallpaperManager {
         });
 
         self.wallpapers.lock().unwrap().extend(wallpapers);
-        info!("new image count: {}", self.wallpapers.lock().unwrap().len());
+        info!(
+            "finished requesting images, new image count: {}",
+            self.wallpapers.lock().unwrap().len()
+        );
         self.put_client(client);
         Ok(())
     }
@@ -301,11 +305,17 @@ impl WallpaperManager {
                 if single_path.exists() {
                     return;
                 }
-                let image = Reader::open(&file_path).unwrap().decode().unwrap();
-                let factor = image.height() as f32 / image.width() as f32;
-                let thumbnail = image.thumbnail(300, (300. * factor) as u32);
-                thumbnail.save(&single_path).unwrap();
-                info!("generated thumbnail {:?}", &single_path);
+                match Reader::open(&file_path).unwrap().decode() {
+                    Ok(image) => {
+                        let factor = image.height() as f32 / image.width() as f32;
+                        let thumbnail = image.thumbnail(300, (300. * factor) as u32);
+                        thumbnail.save(&single_path).unwrap();
+                        info!("generated thumbnail {:?}", &single_path);
+                    }
+                    Err(e) => {
+                        warn!("unable to create thumbnail for {file_name} because: {e}")
+                    }
+                }
             });
             futures.push(future);
         }
