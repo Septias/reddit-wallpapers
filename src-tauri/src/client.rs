@@ -41,7 +41,7 @@ async fn get_and_add_to_map(
     if let Ok(path_buf) = response {
         map.lock().unwrap().insert(post.name.clone(), path_buf);
     } else {
-        warn!("wallpapererror: {:?}", response);
+        warn!("wallpaper error: {:?}", response);
     }
 }
 
@@ -216,10 +216,10 @@ impl RedditClient {
             path.set_extension(extension);
 
             if path.exists() {
-                info!("skippin image {:?} since it's already present", post.title);
+                info!("Skipping image {:?} as it's already present", post.title);
                 return Ok(path.file_name().unwrap().to_str().unwrap().to_owned());
             }
-            info!("saving image {:?} at {:?}", post.title, path);
+            info!("Saving image {:?} at {:?}", post.title, path);
 
             let mut file = File::create(&path).await.unwrap();
             let mut body_stream = resp.bytes_stream();

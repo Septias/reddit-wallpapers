@@ -128,7 +128,7 @@ impl WallpaperManager {
 
     fn cache_path() -> Option<PathBuf> {
         cache_dir().map(|mut path| {
-            path.push("reddit-wallapers/cache.json");
+            path.push("reddit-wallpapers/cache.json");
             path
         })
     }
