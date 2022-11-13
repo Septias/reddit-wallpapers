@@ -14,10 +14,12 @@ use tokio::{
     io::AsyncWriteExt,
 };
 
-use crate::{Config, Post, TokenInfo, UserData, WallpaperError, VALID_EXTENSION};
+use crate::{
+    string_serializer, Config, Post, TokenInfo, UserData, WallpaperError, VALID_EXTENSION,
+};
 
 pub struct RedditClient {
-    client: Client,
+    client: Arc<Client>,
     token: String,
     base_path: PathBuf,
     username: String,
@@ -27,6 +29,10 @@ pub struct RedditClient {
 pub enum ClientError {
     #[error("Bad credentials")]
     BadCredetials,
+
+    #[error(transparent)]
+    #[serde(with = "string_serializer")]
+    Reqwest(#[from] reqwest::Error),
 }
 
 async fn get_and_add_to_map(
@@ -35,22 +41,29 @@ async fn get_and_add_to_map(
     client: &RedditClient,
 ) {
     let response = client
-        .download_post_image(client.base_path.clone(), post.clone())
+        .download_post_image(
+            client.base_path.clone(),
+            post.clone(),
+            client.client.clone(),
+        )
         .await;
 
     if let Ok(path_buf) = response {
         map.lock().unwrap().insert(post.name.clone(), path_buf);
     } else {
-        warn!("wallpapererror: {:?}", response);
+        warn!("wallpaper error: {:?}", response);
     }
 }
 
 impl RedditClient {
     pub async fn new(config: &Config) -> Result<Self, ClientError> {
-        let client = ClientBuilder::new()
-            .user_agent("Wallpaper downloader")
-            .build()
-            .unwrap();
+        let client = Arc::new(
+            ClientBuilder::new()
+                .user_agent("Wallpaper downloader")
+                .pool_idle_timeout(None)
+                .build()
+                .unwrap(),
+        );
 
         let token = Self::get_token(&client, config).await?;
         Ok(Self {
@@ -192,13 +205,18 @@ impl RedditClient {
         &self,
         mut path: PathBuf,
         post: Arc<Post>,
+        client: Arc<Client>,
     ) -> Result<String, WallpaperError> {
         if !path.is_dir() {
             create_dir_all(&path).await.unwrap();
         }
         path.push(&post.name);
         tokio::spawn(async move {
-            let resp = reqwest::get(post.url.clone()).await.unwrap();
+            let resp = client
+                .get(post.url.clone())
+                .send()
+                .await
+                .map_err(|e| WallpaperError::Client(ClientError::Reqwest(e)))?;
 
             let extension = resp
                 .headers()
@@ -216,10 +234,10 @@ impl RedditClient {
             path.set_extension(extension);
 
             if path.exists() {
-                info!("skippin image {:?} since it's already present", post.title);
+                info!("Skipping image {:?} as it's already present", post.title);
                 return Ok(path.file_name().unwrap().to_str().unwrap().to_owned());
             }
-            info!("saving image {:?} at {:?}", post.title, path);
+            info!("Saving image {:?} at {:?}", post.title, path);
 
             let mut file = File::create(&path).await.unwrap();
             let mut body_stream = resp.bytes_stream();
