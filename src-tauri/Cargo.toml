@@ -1,6 +1,6 @@
 [package]
 name = "reddit-wallpapers"
-version = "0.1.1"
+version = "0.1.2"
 description = "Reddit Wallpapers"
 authors = ["Sebastian "]
 repository = "https://github.com/Septias/reddit-wallpapers"
@@ -9,7 +9,7 @@ edition = "2021"
 rust-version = "1.57"
 
 [build-dependencies]
-tauri-build = { version = "1.1.1", features = [] }
+tauri-build = { version = "1.2.1", features = [] }
 
 [dependencies]
 serde_json = "1.0"
