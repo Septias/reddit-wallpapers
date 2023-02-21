@@ -98,7 +98,7 @@ impl WallpaperManager {
         })
     }
 
-    /// Tries to read config from filesystem or returns default config
+    /// Tries to read config from filesystem
     fn load_config() -> Option<Config> {
         if let Some(path) = Self::config_path() {
             let data = read_string(path)
