@@ -196,7 +196,7 @@ impl WallpaperManager {
     pub async fn set_wallpaper(&self, name: &str) {
         let wallpaper = self
             .get_wallpaper(name)
-            .unwrap_or_else(|| panic!("no post with name {} exists", name));
+            .unwrap_or_else(|| panic!("no wallpaper with name {} exists", name));
         let config = self.config.lock().unwrap();
         let path = config.path.join(&wallpaper.file_name);
         let path = path.to_str().unwrap();
