@@ -48,19 +48,11 @@
       "active": false
     },
     "allowlist": {
-      "all": true,
       "protocol": {
         "assetScope": [
           "$HOME/**"
         ],
-        "all": true,
         "asset": true
-      },
-      "fs": {
-        "all": true
-      },
-      "path": {
-        "all": true
       }
     },
     "windows": [
