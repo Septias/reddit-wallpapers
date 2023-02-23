@@ -3819,13 +3819,13 @@ dependencies = [
 
 [[package]]
 name = "wallpaper"
-version = "3.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0547c84bf49b1096b20ce49736b86cd27f8225fc426665d3fba19e71e44c4d46"
+version = "4.0.0"
+source = "git+https://github.com/reujab/wallpaper.rs.git#20270387cb6533364830d18e8f69bb5b5f01ad43"
 dependencies = [
  "dirs",
  "enquote",
  "rust-ini",
+ "thiserror",
  "winapi",
  "winreg 0.9.0",
 ]
