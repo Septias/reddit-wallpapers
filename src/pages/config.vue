@@ -1,5 +1,6 @@
 <script lang="ts" setup async>
 import { invoke } from '@tauri-apps/api/tauri'
+import { open } from '@tauri-apps/api/dialog'
 
 interface Config {
   path: string
@@ -30,6 +31,11 @@ async function save() {
 }
 
 const is_equal = computed(() => JSON.stringify(reference) === JSON.stringify(config))
+
+async function handle_select_path() {
+  config.path = await open({ directory: true })
+}
+
 </script>
 
 <template lang="pug">
@@ -46,7 +52,9 @@ const is_equal = computed(() => JSON.stringify(reference) === JSON.stringify(con
     label password
     input.input.mb-2(v-model="config.password")
     label path
-    input.input.mb-2(v-model="config.path" :disabled="!first_setup")
+    .flex.gap-2
+      input.input.mb-2.flex-grow(v-model="config.path" :disabled="!first_setup")
+      button.p-1.leading-none.bg-primaryl.i-carbon-select-02(@click="handle_select_path")
     label client-id
     input.input.mb-2(v-model="config.client_id")
     label client-secret
