@@ -27,8 +27,8 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y libgtk-3-dev webkit2gtk-4.0 libappindicator3-dev librsvg2-dev patchelf
-    - name: install app dependencies and build it
     - uses: pnpm/action-setup@v2
+    - name: install app dependencies and build it
       run: pnpm
     - uses: tauri-apps/tauri-action@dev
       env:
