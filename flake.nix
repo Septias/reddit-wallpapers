@@ -17,8 +17,7 @@
       forAllSystems = f: nixpkgs.lib.genAttrs allSystems (system: f {
         pkgs = import nixpkgs { inherit system; };
       });
-    in
-    {
+    in rec {
       packages = forAllSystems ({ pkgs }: {
         default = pkgs.rustPlatform.buildRustPackage {
           name = "zero-to-nix-rust";
