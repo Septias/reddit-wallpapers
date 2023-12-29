@@ -2,7 +2,7 @@
 name = "reddit-wallpapers"
 version = "0.1.2"
 description = "Reddit Wallpapers"
-authors = ["Sebastian "]
+authors = ["Sebastian"]
 repository = "https://github.com/Septias/reddit-wallpapers"
 default-run = "reddit-wallpapers"
 edition = "2021"
