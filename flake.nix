@@ -28,6 +28,7 @@
           postPatch = ''
             echo "hi"
             ls
+            substituteInPlace tauri.conf.json --replace '"distDir": "../dist",' '"distDir": "dist",'
           '';
  
           meta = {

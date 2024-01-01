@@ -21,7 +21,7 @@ log = "0.4"
 json = "0.12"
 futures-util = "0.3"
 toml = "0.7"
-wallpaper = {git="https://github.com/reujab/wallpaper.rs.git", rev="2f9d87aaaae1f6b7acf3bb852860d2eaa5bfdd7b"}
+wallpaper = {git="https://github.com/reujab/wallpaper.rs.git", rev="20270387cb6533364830d18e8f69bb5b5f01ad43"}
 env_logger = "0.10"
 thiserror = "1.0"
 image = "0.24"
