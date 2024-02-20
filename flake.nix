@@ -13,8 +13,8 @@
         cargo = rust-toolchain;
         rustc = rust-toolchain;
       };
-      buildInputs = with pkgs; [ openssl ];
-      nativeBuildInputs = with pkgs; [ pkg-config dbus openssl freetype libsoup gtk3 webkitgtk ];
+      buildInputs = with pkgs; [ openssl cargo-tauri];
+      nativeBuildInputs = with pkgs; [ pkg-config dbus openssl freetype libsoup gtk3 webkitgtk librsvg];
       rust-toolchain = pkgs.rust-bin.stable.latest.default.override {
         extensions = [ "rust-src" "rustfmt" "rust-docs" "clippy" "rust-analyzer"];
       };
