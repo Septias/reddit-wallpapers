@@ -1,6 +1,5 @@
 use image::io::Reader;
 use log::{info, warn};
-use more_wallpapers::Mode;
 use serde::{Deserialize, Serialize};
 use tauri::{
     api::{
@@ -202,7 +201,7 @@ impl WallpaperManager {
         let path = config.path.join(&wallpaper.file_name);
         let path = path.to_str().unwrap();
         info!("setting wallpaper: {:?}", path);
-        more_wallpapers::set_wallpapers_from_vec(vec![], path, Mode::Crop).unwrap();
+        wallpaper::set_from_path(path).unwrap();
     }
 
     fn get_wallpaper(&self, name: &str) -> Option<Arc<Wallpaper>> {

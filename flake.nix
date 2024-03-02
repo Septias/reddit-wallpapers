@@ -46,23 +46,37 @@
             rustc = rust-toolchain;
           };
           name = "reddit-wallpapers";
+          version = "1.0.0";
+          frontend = pkgs.makeRustPlatform (finalAttrs: {
+            inherit version;
+            pname = name;
+            src = ./.;
+            pnpmDeps = fetchPnpmDeps {
+              inherit finalAttrs src pname;
+              hash = pkgs.fakeHash;
+            };
+            nativeBuildInputs = [pkgs.pnpmConfigHook];
+          });
+        
         in rec {
           formatter = pkgs.alejandra;
           packages = {
             ${name} = rustPlatform.buildRustPackage {
-              inherit name buildInputs;
+              inherit name buildInputs frontend;
               nativeBuildInputs = buildInputs;
-              src = ./src-tauri;
+              src = ./.;
+              sourceRoot = ./src-tauri;
               cargoLock = {
                 lockFile = ./src-tauri/Cargo.lock;
               };
 
               postPatch = ''
                 echo "hi"
+                ls $frontend
+                cp {$frontend/dist} .
                 ls
-                substituteInPlace tauri.conf.json --replace '"distDir": "../dist",' '"distDir": "dist",'
               '';
-
+              # substituteInPlace tauri.conf.json --replace '"distDir": "../dist",' '"distDir": "dist",'
               meta = {
                 description = "Application to set wallpapers from reddit as desktop-background";
                 homepage = "https://github.com/Septias/reddit-wallpapers";
