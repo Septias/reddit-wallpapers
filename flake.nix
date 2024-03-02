@@ -14,10 +14,6 @@
             overlays = [(import rust-overlay)];
             inherit system;
           };
-          naerskLib = pkgs.callPackage naersk {
-            cargo = rust-toolchain;
-            rustc = rust-toolchain;
-          };
           libraries = with pkgs; [
             webkitgtk
             gtk3
@@ -35,6 +31,7 @@
             pkg-config
             dbus
             openssl_3
+            openssl
             glib
             gtk3
             libsoup
@@ -44,13 +41,21 @@
           rust-toolchain = pkgs.rust-bin.stable.latest.default.override {
             extensions = ["rust-src" "rustfmt" "rust-docs" "clippy" "rust-analyzer"];
           };
+          rustPlatform = pkgs.makeRustPlatform {
+            cargo = rust-toolchain;
+            rustc = rust-toolchain;
+          };
           name = "reddit-wallpapers";
         in rec {
           formatter = pkgs.alejandra;
           packages = {
-            ${name} = naerskLib.buildPackage {
-              inherit name buildInputs nativeBuildInputs;
+            ${name} = rustPlatform.buildRustPackage {
+              inherit name buildInputs;
+              nativeBuildInputs = buildInputs;
               src = ./src-tauri;
+              cargoLock = {
+                lockFile = ./src-tauri/Cargo.lock;
+              };
 
               postPatch = ''
                 echo "hi"
