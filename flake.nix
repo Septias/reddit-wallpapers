@@ -4,6 +4,7 @@
     rust-overlay.url = "github:oxalica/rust-overlay";
     flake-utils.follows = "rust-overlay/flake-utils";
     nixpkgs.follows = "rust-overlay/nixpkgs";
+    unstable.url = "github:nixos/nixpkgs-channels/nixos-unstable";
     naersk.url = "github:nix-community/naersk";
   };
   outputs = inputs:
@@ -12,6 +13,9 @@
         system: let
           pkgs = import nixpkgs {
             overlays = [(import rust-overlay)];
+            inherit system;
+          };
+          pkgs_unstable = import unstable {
             inherit system;
           };
           libraries = with pkgs; [
@@ -47,36 +51,39 @@
           };
           name = "reddit-wallpapers";
           version = "1.0.0";
-          frontend = pkgs.makeRustPlatform (finalAttrs: {
+          dist = ./dist;
+          /* frontend = pkgs_unstable.stdenv.mkDerivation (finalAttrs: {
             inherit version;
             pname = name;
             src = ./.;
-            pnpmDeps = fetchPnpmDeps {
+            pnpmDeps = pkgs_unstable.fetchPnpmDeps {
               inherit finalAttrs src pname;
               hash = pkgs.fakeHash;
             };
-            nativeBuildInputs = [pkgs.pnpmConfigHook];
-          });
+            #nativeBuildInputs = [pkgs.pnpmConfigHook];
+          }); */
         
         in rec {
           formatter = pkgs.alejandra;
           packages = {
-            ${name} = rustPlatform.buildRustPackage {
-              inherit name buildInputs frontend;
+            ${name} = rustPlatform.buildRustPackage rec {
+              inherit buildInputs name;
               nativeBuildInputs = buildInputs;
-              src = ./.;
-              sourceRoot = ./src-tauri;
+              src = ./src-tauri;
               cargoLock = {
                 lockFile = ./src-tauri/Cargo.lock;
+                outputHashes = {
+                  "wallpaper-4.0.0" = "sha256-74S2ThwjF90F274zyppSlFwZeZP/0n2lawEaxQyq3Q0=";
+                };
               };
 
               postPatch = ''
                 echo "hi"
-                ls $frontend
-                cp {$frontend/dist} .
-                ls
+                cp -r ${dist} .
+                ls 
+                substituteInPlace tauri.conf.json --replace '"distDir": "../dist",' '"distDir": "${dist}",'
               '';
-              # substituteInPlace tauri.conf.json --replace '"distDir": "../dist",' '"distDir": "dist",'
+      
               meta = {
                 description = "Application to set wallpapers from reddit as desktop-background";
                 homepage = "https://github.com/Septias/reddit-wallpapers";
