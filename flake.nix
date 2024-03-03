@@ -87,6 +87,7 @@
               meta = {
                 description = "Application to set wallpapers from reddit as desktop-background";
                 homepage = "https://github.com/Septias/reddit-wallpapers";
+                mainProgram="reddit-wallpapers";
               };
             };
             default = packages.${name};
