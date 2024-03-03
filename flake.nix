@@ -62,6 +62,15 @@
             };
             #nativeBuildInputs = [pkgs.pnpmConfigHook];
           }); */
+          desktopItem = pkgs.makeDesktopItem {
+            inherit icon;
+            name = "Reddit Wallpapers";
+            desktopName = "Reddit Wallapapers";
+            comment = "Knowledge base";
+            exec = "reddit-wallpapers";
+            categories = [ "Office" ];
+          };
+          icon = ./src-tauri/icons/icon.png;
         
         in rec {
           formatter = pkgs.alejandra;
@@ -84,7 +93,17 @@
                 substituteInPlace tauri.conf.json --replace '"distDir": "../dist",' '"distDir": "${dist}",'
               '';
       
-              meta = {
+              installPhase = ''
+                runHook preInstall
+                install -m 444 -D "${desktopItem}/share/applications/"* -t $out/share/applications/
+              
+                mkdir -p $out/share/icons/hicolor/128x128/apps
+                cp ${icon} $out/share/icons/hicolor/128x128/apps/reddit-wallpapers.png
+
+                runHook postInstall
+              '';
+
+              meta = {  
                 description = "Application to set wallpapers from reddit as desktop-background";
                 homepage = "https://github.com/Septias/reddit-wallpapers";
                 mainProgram="reddit-wallpapers";
