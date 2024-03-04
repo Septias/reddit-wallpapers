@@ -90,19 +90,15 @@
                 substituteInPlace tauri.conf.json --replace '"distDir": "../dist",' '"distDir": "${dist}",'
               '';
       
-              installPhase = ''
-                runHook preInstall
-                ls ${desktopItem}
-              
+              postInstall = ''
                 mkdir -p $out/share/icons/hicolor/128x128/apps
                 cp ${icon} $out/share/icons/hicolor/128x128/apps/reddit-wallpapers.png
-
-                runHook postInstall
               '';
 
               meta = {  
                 description = "Application to set wallpapers from reddit as desktop-background";
                 homepage = "https://github.com/Septias/reddit-wallpapers";
+                mainProgram = "reddit-wallpapers";
               };
             };
             default = packages.${name};
