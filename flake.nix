@@ -76,7 +76,7 @@
           formatter = pkgs.alejandra;
           packages = {
             ${name} = rustPlatform.buildRustPackage rec {
-              inherit buildInputs name;
+              inherit buildInputs name desktopItem;
               nativeBuildInputs = buildInputs;
               src = ./src-tauri;
               cargoLock = {
