@@ -93,6 +93,8 @@
               postInstall = ''
                 mkdir -p $out/share/icons/hicolor/128x128/apps
                 cp ${icon} $out/share/icons/hicolor/128x128/apps/reddit-wallpapers.png
+                mkdir -p "$out/share/applications"
+                cp $desktopItem/share/applications/* $out/share/applications
               '';
 
               meta = {  
