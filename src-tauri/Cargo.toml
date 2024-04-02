@@ -15,16 +15,16 @@ tauri-build = { version = "1.2.1", features = [] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "1.6.1", features = ["devtools", "protocol-asset"] }
-reqwest = { version = "^0.11", features = ["json", "stream"] }
+reqwest = { version = "0.12.2", features = ["json", "stream"] }
 tokio = { version = "1", features = ["macros", "default"] }
 log = "0.4"
 json = "0.12"
 futures-util = "0.3"
 toml = "0.8.10"
-wallpaper = {git="https://github.com/reujab/wallpaper.rs.git", rev="20270387cb6533364830d18e8f69bb5b5f01ad43" }
+wallpaper = { git = "https://github.com/reujab/wallpaper.rs.git", rev = "20270387cb6533364830d18e8f69bb5b5f01ad43" }
 env_logger = "0.11.2"
 thiserror = "1.0"
-image = "0.24"
+image = "0.25.0"
 anyhow = "1.0"
 tauri-plugin-positioner = "1.0"
 
