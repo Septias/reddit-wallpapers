@@ -53,6 +53,9 @@
           "$HOME/**"
         ],
         "asset": true
+      },
+      "path": {
+        "all": true
       }
     },
     "windows": [
