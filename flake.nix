@@ -15,6 +15,8 @@
     with inputs;
       flake-utils.lib.eachDefaultSystem (
         system: let
+          version = "0.1.2";
+
           pkgs = import nixpkgs {
             overlays = [(import rust-overlay)];
             inherit system;
@@ -56,8 +58,8 @@
           };
           name = "reddit-wallpapers";
           frontend = pkgs.stdenv.mkDerivation (finalAttrs: {
-            pname = "better-ilias-frontend";
-            version = "1";
+            inherit version;
+            pname = "reddit-wallpapers-frontend";
             src = pkgs.lib.cleanSource ./.;
             nativeBuildInputs = with unstable; [
               nodejs
@@ -69,7 +71,6 @@
             };
 
             installPhase = ''
-              ls dist
               cp -r dist $out
             '';
           });
@@ -87,7 +88,7 @@
           formatter = pkgs.alejandra;
           packages = {
             ${name} = rustPlatform.buildRustPackage rec {
-              inherit buildInputs name desktopItem;
+              inherit buildInputs name desktopItem version;
               nativeBuildInputs = buildInputs;
               src = ./src-tauri;
               cargoLock = {
