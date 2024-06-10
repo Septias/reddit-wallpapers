@@ -240,7 +240,8 @@ impl WallpaperManager {
             posts
                 .into_iter()
                 .filter(|post| {
-                    let wallpapers_subreddit = post.subreddit == "wallpaper";
+                    let wallpapers_subreddit =
+                        (post.subreddit == "wallpaper") | (post.subreddit == "wallpapers");
                     let already_present = wallpapers.iter().any(|wp| *wp.name == post.name);
                     let valid_extension =
                         VALID_EXTENSION.contains(&post.url.split('.').last().unwrap());
