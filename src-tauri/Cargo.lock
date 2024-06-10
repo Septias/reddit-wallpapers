@@ -4265,7 +4265,7 @@ dependencies = [
 [[package]]
 name = "wallpaper"
 version = "4.0.0"
-source = "git+https://github.com/reujab/wallpaper.rs.git?rev=20270387cb6533364830d18e8f69bb5b5f01ad43#20270387cb6533364830d18e8f69bb5b5f01ad43"
+source = "git+https://github.com/septias/wallpaper.rs.git#38cf93dabe25f4e620c813c5a3c29f28ebb8971f"
 dependencies = [
  "dirs",
  "enquote",

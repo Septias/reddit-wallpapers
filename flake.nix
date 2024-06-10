@@ -36,12 +36,9 @@
           ];
 
           buildInputs = with pkgs; [
-            curl
-            wget
             pkg-config
             dbus
             openssl_3
-            openssl
             glib
             gtk3
             libsoup
@@ -71,6 +68,7 @@
             };
 
             installPhase = ''
+              pnpm build
               cp -r dist $out
             '';
           });
@@ -94,7 +92,7 @@
               cargoLock = {
                 lockFile = ./src-tauri/Cargo.lock;
                 outputHashes = {
-                  "wallpaper-4.0.0" = "sha256-74S2ThwjF90F274zyppSlFwZeZP/0n2lawEaxQyq3Q0=";
+                  "wallpaper-4.0.0" = "sha256-C65jjr0dEGb52YcMLwCcrT4Wqf+xZN8eGtp8sXFF7fE=";
                 };
               };
 
