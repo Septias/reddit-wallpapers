@@ -1,9 +1,15 @@
 {
   description = "Application to set wallpapers from reddit as desktop-background";
   inputs = {
-    rust-overlay.url = "github:oxalica/rust-overlay";
+    os_flake.url = "github:septias/nixos-config";
+    nixpkgs.follows = "os_flake/nixpkgs";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     flake-utils.follows = "rust-overlay/flake-utils";
-    nixpkgs.follows = "rust-overlay/nixpkgs";
+    naersk.url = "github:nix-community/naersk";
   };
   outputs = inputs:
     with inputs;
@@ -11,6 +17,9 @@
         system: let
           pkgs = import nixpkgs {
             overlays = [(import rust-overlay)];
+            inherit system;
+          };
+          unstable = import nixpkgs-unstable {
             inherit system;
           };
           libraries = with pkgs; [
@@ -46,18 +55,24 @@
             rustc = rust-toolchain;
           };
           name = "reddit-wallpapers";
-          version = "1.0.0";
-          dist = ./dist;
-          /* frontend = pkgs_unstable.stdenv.mkDerivation (finalAttrs: {
-            inherit version;
-            pname = name;
-            src = ./.;
-            pnpmDeps = pkgs_unstable.fetchPnpmDeps {
-              inherit finalAttrs src pname;
-              hash = pkgs.fakeHash;
+          frontend = pkgs.stdenv.mkDerivation (finalAttrs: {
+            pname = "better-ilias-frontend";
+            version = "1";
+            src = pkgs.lib.cleanSource ./.;
+            nativeBuildInputs = with unstable; [
+              nodejs
+              unstable.pnpm.configHook
+            ];
+            pnpmDeps = unstable.pnpm.fetchDeps {
+              inherit (finalAttrs) pname version src;
+              hash = "sha256-OsCughjP93BfcxyuNt2EnqwZvyLCEvVSbJeiOFGKJIo=";
             };
-            #nativeBuildInputs = [pkgs.pnpmConfigHook];
-          }); */
+
+            installPhase = ''
+              ls dist
+              cp -r dist $out
+            '';
+          });
           desktopItem = pkgs.makeDesktopItem {
             name = "Reddit Wallpapers";
             desktopName = "Reddit Wallapapers";
@@ -83,7 +98,7 @@
               };
 
               postPatch = ''
-                substituteInPlace tauri.conf.json --replace '"distDir": "../dist",' '"distDir": "${dist}",'
+                substituteInPlace tauri.conf.json --replace '"distDir": "../dist",' '"distDir": "${frontend}",'
               '';
       
               postInstall = ''
