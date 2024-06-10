@@ -26,3 +26,4 @@ result
 *.sw?
 
 .vite-ssg-temp
+dist
