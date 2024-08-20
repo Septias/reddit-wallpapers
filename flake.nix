@@ -103,6 +103,7 @@
       
               postInstall = ''
                 mkdir -p $out/share/icons/hicolor/128x128/apps
+                mkdir -p $out/share/icons/hicolor/512x512/apps
                 cp ${icon-small} $out/share/icons/hicolor/128x128/apps/reddit-wallpapers.png
                 cp ${icon} $out/share/icons/hicolor/512x512/apps/reddit-wallpapers.png
 
