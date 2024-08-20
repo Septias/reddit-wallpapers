@@ -74,7 +74,7 @@
           });
           desktopItem = pkgs.makeDesktopItem {
             name = "Reddit Wallpapers";
-            desktopName = "Reddit Wallapapers";
+            desktopName = "Reddit Wallpapers";
             icon = "reddit-wallpapers";
             comment = "Wallpapers";
             exec = "reddit-wallpapers";
