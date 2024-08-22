@@ -8,7 +8,7 @@ use tauri::{
     },
     async_runtime::spawn_blocking,
 };
-use tokio::fs::create_dir;
+use tokio::fs::{create_dir, remove_file};
 
 use crate::{
     client::{ClientError, RedditClient},
@@ -202,6 +202,26 @@ impl WallpaperManager {
         let path = path.to_str().unwrap();
         info!("setting wallpaper: {:?}", path);
         wallpaper::set_from_path(path).unwrap();
+    }
+
+    pub async fn remove_wallpaper(&self, name: &str) -> anyhow::Result<()> {
+        self.reddit_client
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .unsave_post(name)
+            .await?;
+
+        let config = self.config.lock().unwrap();
+        let mut wp = self.wallpapers.lock().unwrap();
+        let index = wp.iter().position(|elem| elem.name == name);
+        if let Some(index) = index {
+            let path = config.path.join(&wp[index].file_name);
+            remove_file(path).await?;
+            wp.remove(index);
+        }
+        Ok(())
     }
 
     fn get_wallpaper(&self, name: &str) -> Option<Arc<Wallpaper>> {

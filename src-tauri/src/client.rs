@@ -93,20 +93,36 @@ impl RedditClient {
         Ok(t.access_token)
     }
 
-    async fn create_request_with_auth(&self, url: &str, root: &str) -> reqwest::RequestBuilder {
+    async fn create_get_with_auth(&self, url: &str, root: &str) -> reqwest::RequestBuilder {
         self.client
             .get(String::from(root) + url)
             .header("Authorization", format!("bearer {}", self.token))
     }
 
+    async fn create_post_with_auth(&self, url: &str) -> reqwest::RequestBuilder {
+        self.client
+            .post(format!("https://oauth.reddit.com/api/v1{url}"))
+            .header("Authorization", format!("bearer {}", self.token))
+    }
+
     pub async fn fetch_userdata(&self) -> UserData {
         let response = self
-            .create_request_with_auth("/me", "https://oauth.reddit.com/api/v1")
+            .create_get_with_auth("/me", "https://oauth.reddit.com/api/v1")
             .await
             .send()
             .await
             .unwrap();
         serde_json::from_str(&response.text().await.unwrap()).unwrap()
+    }
+
+    pub async fn unsave_post(&self, fullname: &str) -> anyhow::Result<()> {
+        let form: HashMap<_, _> = [("id".to_string(), fullname.to_string())].into();
+        self.create_post_with_auth("/unsave")
+            .await
+            .form(&form)
+            .send()
+            .await?;
+        Ok(())
     }
 
     /// Fetch all saved posts until `until` is found in one of the requests
@@ -131,7 +147,7 @@ impl RedditClient {
 
             debug!("Requesting saved posts with after: {:?}", after);
             let saved = self
-                .create_request_with_auth(
+                .create_get_with_auth(
                     &format!("user/{}/saved", self.username),
                     &String::from("https://oauth.reddit.com/"),
                 )

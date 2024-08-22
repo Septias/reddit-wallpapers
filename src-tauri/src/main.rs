@@ -41,6 +41,11 @@ async fn fetch_recent(wm: tauri::State<'_, Arc<WallpaperManager>>) -> Result<(),
 }
 
 #[tauri::command]
+async fn delete_wallpaper(wm: tauri::State<'_, Arc<WallpaperManager>>) -> Result<(), ClientError> {
+    wm.delete_wallpaper();
+}
+
+#[tauri::command]
 async fn select_wallpaper(
     wm: tauri::State<'_, Arc<WallpaperManager>>,
     name: String,
