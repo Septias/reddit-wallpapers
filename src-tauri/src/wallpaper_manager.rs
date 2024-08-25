@@ -204,23 +204,24 @@ impl WallpaperManager {
         wallpaper::set_from_path(path).unwrap();
     }
 
-    pub async fn remove_wallpaper(&self, name: &str) -> anyhow::Result<()> {
-        self.reddit_client
-            .lock()
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .unsave_post(name)
-            .await?;
+    pub async fn remove_wallpaper(&self, name: &str) -> Result<(), ClientError> {
+        let client = self.get_client()?;
+        client.unsave_post(&name).await?;
+        self.put_client(client);
 
-        let config = self.config.lock().unwrap();
-        let mut wp = self.wallpapers.lock().unwrap();
-        let index = wp.iter().position(|elem| elem.name == name);
-        if let Some(index) = index {
-            let path = config.path.join(&wp[index].file_name);
-            remove_file(path).await?;
+        let path = {
+            let mut wp = self.wallpapers.lock().unwrap();
+            let index = wp
+                .iter()
+                .position(|elem| elem.name == name)
+                .ok_or(ClientError::WallpaperNotFound)?;
             wp.remove(index);
-        }
+            self.config.lock().unwrap().path.join(&wp[index].file_name)
+        };
+        remove_file(path)
+            .await
+            .map_err(|err| anyhow::anyhow!(err))?;
+
         Ok(())
     }
 

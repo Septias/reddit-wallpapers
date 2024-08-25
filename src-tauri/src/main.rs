@@ -41,8 +41,12 @@ async fn fetch_recent(wm: tauri::State<'_, Arc<WallpaperManager>>) -> Result<(),
 }
 
 #[tauri::command]
-async fn delete_wallpaper(wm: tauri::State<'_, Arc<WallpaperManager>>) -> Result<(), ClientError> {
-    wm.delete_wallpaper();
+async fn remove_wallpaper(
+    wm: tauri::State<'_, Arc<WallpaperManager>>,
+    name: String,
+) -> Result<(), ClientError> {
+    wm.remove_wallpaper(&name).await.unwrap();
+    Ok(())
 }
 
 #[tauri::command]
@@ -90,6 +94,7 @@ async fn main() -> anyhow::Result<()> {
             get_all_wallpapers,
             get_cached_wallpapers,
             select_wallpaper,
+            remove_wallpaper,
             fetch_recent,
             get_wallpapers_path,
             get_config,

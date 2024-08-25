@@ -30,9 +30,16 @@ pub enum ClientError {
     #[error("Bad credentials")]
     BadCredetials,
 
+    #[error("Wallpaper not found")]
+    WallpaperNotFound,
+
     #[error(transparent)]
     #[serde(with = "string_serializer")]
     Reqwest(#[from] reqwest::Error),
+
+    #[serde(with = "string_serializer")]
+    #[error(transparent)]
+    Anyhow(#[from] anyhow::Error),
 }
 
 async fn get_and_add_to_map(
@@ -115,7 +122,7 @@ impl RedditClient {
         serde_json::from_str(&response.text().await.unwrap()).unwrap()
     }
 
-    pub async fn unsave_post(&self, fullname: &str) -> anyhow::Result<()> {
+    pub async fn unsave_post(&self, fullname: &str) -> Result<(), ClientError> {
         let form: HashMap<_, _> = [("id".to_string(), fullname.to_string())].into();
         self.create_post_with_auth("/unsave")
             .await
