@@ -64,7 +64,7 @@ async fn set_config(
     wm: tauri::State<'_, Arc<WallpaperManager>>,
     new_config: Config,
 ) -> Result<(), WallpaperError> {
-    wm.set_config(new_config).await
+    wm.login(new_config).await
 }
 
 #[tauri::command]

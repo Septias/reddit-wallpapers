@@ -36,11 +36,11 @@ pub struct Wallpaper {
 }
 
 pub struct WallpaperManager {
-    pub config: Mutex<Config>,
+    pub config: Mutex<Vec<Config>>,
     post_data: Mutex<HashMap<String, PostInfo>>,
-    reddit_client: Mutex<Option<RedditClient>>,
+    reddit_clients: Mutex<Vec<RedditClient>>, // Changed from single RedditClient
     wallpapers: Mutex<Vec<Arc<Wallpaper>>>,
-    last_seen_wallpaper: Mutex<String>,
+    last_seen_wallpaper: Mutex<HashMap<String, String>>, // Changed to track last seen per account
 }
 
 #[derive(Serialize, Deserialize)]
@@ -72,22 +72,25 @@ impl WallpaperManager {
     /// Tries to load config from filesystem
     pub async fn new() -> Self {
         // load config
-        let config = Self::load_config().unwrap_or_default();
+        let config = Self::load_configs().unwrap_or_default();
 
-        // create client using config
-        let reddit_client = RedditClient::new(&config).await;
-        if let Err(e) = &reddit_client {
-            warn!("{e}")
+        // create clients using config
+        let mut reddit_clients = Vec::new();
+        for conf in &config {
+            match RedditClient::new(conf).await {
+                Ok(client) => reddit_clients.push(client),
+                Err(e) => warn!("{e}"),
+            }
         }
 
         // load post_data and wallpapers
         let (post_data, wallpapers, last_seen_wallpaper) = Self::load_cache().unwrap_or_default();
         Self {
-            reddit_client: Mutex::new(reddit_client.ok()),
+            reddit_clients: Mutex::new(reddit_clients),
             config: Mutex::new(config),
             post_data,
             wallpapers,
-            last_seen_wallpaper,
+            last_seen_wallpaper, // Now a map
         }
     }
 
@@ -99,11 +102,11 @@ impl WallpaperManager {
     }
 
     /// Tries to read config from filesystem
-    fn load_config() -> Option<Config> {
+    fn load_configs() -> Option<Vec<Config>> {
         if let Some(path) = Self::config_path() {
             let data = read_string(path)
                 .ok()
-                .map(|content| toml::from_str::<Config>(&content).unwrap());
+                .map(|content| toml::from_str::<Vec<Config>>(&content).unwrap());
             info!("successfully loaded config");
             data
         } else {
@@ -112,7 +115,7 @@ impl WallpaperManager {
         }
     }
 
-    fn save_config(config: &Config) -> anyhow::Result<()> {
+    fn save_configs(config: &[Config]) -> anyhow::Result<()> {
         if let Some(path) = Self::config_path() {
             info!("saving config at {path:?}");
             let parent = path.parent().unwrap();
@@ -173,17 +176,23 @@ impl WallpaperManager {
         Ok(())
     }
 
-    /// Fetch all wallpapers
+    /// Fetch all wallpapers from all Reddit clients
     pub async fn fetch_all_wallpapers(&self) -> Result<Vec<Post>, ClientError> {
-        let client = self.get_client()?;
-        let wallpapers = client
-            .fetch_all_saved_posts()
-            .await
-            .into_iter()
-            .filter(|post| post.subreddit == "wallpaper")
-            .collect::<Vec<_>>();
-        self.put_client(client);
-        Ok(wallpapers)
+        let clients = self.get_clients()?;
+        let mut all_wallpapers = Vec::new();
+
+        for client in clients.iter() {
+            let wallpapers = client
+                .fetch_all_saved_posts()
+                .await
+                .into_iter()
+                .filter(|post| post.subreddit == "wallpaper")
+                .collect::<Vec<_>>();
+            all_wallpapers.extend(wallpapers);
+        }
+
+        self.put_clients(clients);
+        Ok(all_wallpapers)
     }
 
     /// Get the cached wallpaper
@@ -213,87 +222,70 @@ impl WallpaperManager {
             .cloned()
     }
 
-    fn get_client(&self) -> Result<RedditClient, ClientError> {
-        let rc = self.reddit_client.lock().unwrap().take();
-        rc.ok_or(ClientError::BadCredetials)
+    fn get_clients(&self) -> Result<Vec<RedditClient>, ClientError> {
+        let clients = self.reddit_clients.lock().unwrap();
+        if clients.is_empty() {
+            Err(ClientError::BadCredetials)
+        } else {
+            Ok(clients.clone())
+        }
     }
 
-    fn put_client(&self, client: RedditClient) {
-        *self.reddit_client.lock().unwrap() = Some(client)
+    fn put_clients(&self, clients: Vec<RedditClient>) {
+        *self.reddit_clients.lock().unwrap() = clients;
     }
 
-    /// Fetch all new wallpapers from reddit app
+    /// Fetch recent wallpapers from all Reddit clients
     pub async fn fetch_recent_wallpapers(&self) -> Result<(), ClientError> {
-        let client = self.get_client()?;
-        info!("started fetching wallpapers");
-        // request all new post
-        let posts = {
-            let data = &self.last_seen_wallpaper.lock().unwrap().clone();
-            let (posts, new_last_senn) = client.fetch_saved_until(data).await;
-            *self.last_seen_wallpaper.lock().unwrap() = new_last_senn;
-            posts
-        };
+        let clients = self.get_clients()?;
+        info!("started fetching wallpapers from all accounts");
 
-        // filter posts
-        let posts = {
-            let wallpapers = self.wallpapers.lock().unwrap();
-            posts
-                .into_iter()
-                .filter(|post| {
-                    let wallpapers_subreddit =
-                        (post.subreddit == "wallpaper") | (post.subreddit == "wallpapers");
-                    let already_present = wallpapers.iter().any(|wp| *wp.name == post.name);
-                    let valid_extension =
-                        VALID_EXTENSION.contains(&post.url.split('.').last().unwrap());
-
-                    if wallpapers_subreddit && !valid_extension {
-                        warn!(
-                            "not adding resource {}, because it has no valid picture-ending",
-                            post.url
-                        );
-                    }
-
-                    valid_extension && wallpapers_subreddit && !already_present
-                })
-                .map(Arc::from)
-                .collect::<Vec<_>>()
-        };
-
-        // download all background images
-        let paths = client.downloader_post_images(&posts).await;
-        self.create_thumbnails(&paths).await;
-
-        // create info for all the posts
-        posts.iter().for_each(|post| {
-            self.post_data
+        for client in clients.iter_mut() {
+            let account = &client.username;
+            let last_seen = self
+                .last_seen_wallpaper
                 .lock()
                 .unwrap()
-                .insert(post.name.clone(), Default::default());
-        });
+                .get(account)
+                .cloned()
+                .unwrap_or_default();
+            let (posts, new_last_seen) = client.fetch_saved_until(&last_seen).await?;
+            self.last_seen_wallpaper
+                .lock()
+                .unwrap()
+                .insert(account.clone(), new_last_seen);
 
-        let wallpapers = posts.into_iter().map(|post| {
-            let post = Arc::try_unwrap(post).unwrap();
-            Arc::new(Wallpaper {
-                subreddit: post.subreddit,
-                title: post.title,
-                url: post.url,
-                file_name: paths.get(&post.name).unwrap().clone(),
-                name: post.name,
-            })
-        });
+            // Filter and process posts as before
+            let filtered_posts = posts
+                .into_iter()
+                .filter(|post| post.subreddit == "wallpaper" || post.subreddit == "wallpapers")
+                .collect::<Vec<_>>();
 
-        self.wallpapers.lock().unwrap().extend(wallpapers);
-        info!(
-            "finished requesting images, new image count: {}",
-            self.wallpapers.lock().unwrap().len()
-        );
-        self.put_client(client);
+            // Download and create thumbnails
+            let paths = client.downloader_post_images(&filtered_posts).await;
+            self.create_thumbnails(&paths).await;
+
+            // Update wallpapers
+            for post in filtered_posts {
+                let wallpaper = Arc::new(Wallpaper {
+                    subreddit: post.subreddit,
+                    title: post.title,
+                    url: post.url,
+                    file_name: paths.get(&post.name).unwrap().clone(),
+                    name: post.name.clone(),
+                });
+                self.wallpapers.lock().unwrap().push(wallpaper);
+            }
+        }
+
+        info!("finished fetching wallpapers from all accounts");
+        self.put_clients(clients);
         Ok(())
     }
 
     async fn create_thumbnails(&self, paths: &HashMap<String, String>) {
         let thumbnails_path = self.wallpaper_path().join("thumbnails");
-        if !thumbnails_path.exists() {
+        if (!thumbnails_path.exists()) {
             create_dir(&thumbnails_path).await.unwrap();
         }
         let mut futures = vec![];
@@ -329,19 +321,29 @@ impl WallpaperManager {
         self.config.lock().unwrap().path.clone()
     }
 
-    pub async fn set_config(&self, config: Config) -> Result<(), WallpaperError> {
+    pub async fn login(&self, config: Config) -> Result<(), WallpaperError> {
         let client = RedditClient::new(&config).await?;
-        *self.reddit_client.lock().unwrap() = Some(client);
+        {
+            let mut clients = self.reddit_clients.lock().unwrap();
+            clients.push(client);
+        }
         create_dir_all(&config.path)?;
         if config.path.to_str().unwrap() == "" {
             return Err(WallpaperError::NoRootPaths);
         }
-        Self::save_config(&config).map_err(|e| warn!("{e}")).ok();
-        *self.config.lock().unwrap() = config;
+        let mut configs = self.config.lock().unwrap();
+        if configs.iter().any(|elem| elem.username == config.username) {
+            return Err(WallpaperError::UserAlreadyExists);
+        }
+        configs.push(config);
+        Self::save_configs(&configs).map_err(|e| {
+            warn!("{e}");
+            WallpaperError::Client(ClientError::BadCredetials)
+        })?;
         Ok(())
     }
 
     pub fn is_configured(&self) -> bool {
-        self.reddit_client.lock().unwrap().is_some()
+        self.reddit_clients.lock().unwrap().is_some()
     }
 }

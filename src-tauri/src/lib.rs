@@ -15,6 +15,7 @@ pub struct UserData {
     pub name: String,
 }
 
+// Ensure Config can handle multiple accounts
 #[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct Config {
     username: String,
@@ -64,6 +65,9 @@ struct TokenInfo {
 pub enum WallpaperError {
     #[error("The image-file does not a have a valid image-ending")]
     InvalidEnding,
+
+    #[error("User Already Exists")]
+    UserAlreadyExists,
 
     #[error("No Root Paths")]
     NoRootPaths,
