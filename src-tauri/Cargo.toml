@@ -25,7 +25,7 @@ log = "0.4"
 json = "0.12"
 futures-util = "0.3"
 toml = "0.8.10"
-wallpaper = { git = "https://github.com/septias/wallpaper.rs.git" }
+wallpaper = { path = "../../wallpaper.rs" }
 env_logger = "0.11.2"
 thiserror = "1.0"
 image = "0.25.0"
