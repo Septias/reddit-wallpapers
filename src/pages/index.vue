@@ -1,6 +1,6 @@
 <script setup lang="ts" async>
 // import { posts } from '~/logic/post_mock'
-import { invoke } from '@tauri-apps/api/tauri'
+import { invoke } from '@tauri-apps/api/core'
 import NProgress from 'nprogress'
 
 const posts = ref(await invoke('get_cached_wallpapers') as Post[])

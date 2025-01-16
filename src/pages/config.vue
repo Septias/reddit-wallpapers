@@ -1,5 +1,5 @@
 <script lang="ts" setup async>
-import { invoke } from '@tauri-apps/api/tauri'
+import { invoke } from '@tauri-apps/api/core'
 
 interface Config {
   path: string

@@ -92,7 +92,7 @@ async fn main() -> anyhow::Result<()> {
             is_configured
         ])
         .setup(|app| {
-            let win = app.get_window("main").unwrap();
+            let win = app.get_webview_window("main").unwrap();
             let _ = win.move_window(Position::TopRight);
             Ok(())
         })

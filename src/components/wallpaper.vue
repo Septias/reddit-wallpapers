@@ -1,6 +1,6 @@
 <script lang="ts" setup async>
 import { join } from '@tauri-apps/api/path'
-import { convertFileSrc, invoke } from '@tauri-apps/api/tauri'
+import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 const props = defineProps({
   post: {
     type: Object,

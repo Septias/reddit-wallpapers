@@ -1,62 +1,59 @@
 {
-  "package": {
-    "productName": "reddit_wallpapers",
-    "version": "0.1.2"
-  },
-  "build": {
-    "distDir": "../dist",
-    "devPath": "http://localhost:3333",
-    "beforeDevCommand": "pnpm dev",
-    "beforeBuildCommand": "pnpm build"
-  },
-  "tauri": {
-    "bundle": {
-      "active": true,
-      "targets": "all",
-      "identifier": "github.septias",
-      "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
-      ],
-      "resources": [],
-      "externalBin": [],
-      "copyright": "",
-      "category": "Utility",
-      "shortDescription": "",
-      "longDescription": "",
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": ""
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [],
+    "externalBin": [],
+    "copyright": "",
+    "category": "Utility",
+    "shortDescription": "",
+    "longDescription": "",
+    "macOS": {
+      "frameworks": [],
+      "minimumSystemVersion": "",
+      "exceptionDomain": "",
+      "signingIdentity": null,
+      "providerShortName": null,
+      "entitlements": null
+    },
+    "linux": {
       "deb": {
         "depends": []
-      },
-      "macOS": {
-        "frameworks": [],
-        "minimumSystemVersion": "",
-        "exceptionDomain": "",
-        "signingIdentity": null,
-        "providerShortName": null,
-        "entitlements": null
-      },
-      "windows": {
-        "certificateThumbprint": null,
-        "digestAlgorithm": "sha256",
-        "timestampUrl": ""
       }
-    },
-    "updater": {
-      "active": false
-    },
-    "allowlist": {
-      "protocol": {
-        "assetScope": [
+    }
+  },
+  "build": {
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist",
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:3333"
+  },
+  "productName": "reddit_wallpapers",
+  "mainBinaryName": "reddit_wallpapers",
+  "version": "0.1.2",
+  "identifier": "github.septias",
+  "plugins": {},
+  "app": {
+    "security": {
+      "assetProtocol": {
+        "scope": [
           "$HOME/**"
         ],
-        "asset": true
+        "enable": true
       },
-      "path": {
-        "all": true
-      }
+      "csp": "default-src 'self'; img-src * asset: https://asset.localhost; font-src *; connect-src ipc: http://ipc.localhost"
     },
     "windows": [
       {
@@ -64,11 +61,9 @@
         "width": 960,
         "height": 1080,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "useHttpsScheme": true
       }
-    ],
-    "security": {
-      "csp": "default-src 'self'; img-src * asset: https://asset.localhost; font-src *"
-    }
+    ]
   }
 }

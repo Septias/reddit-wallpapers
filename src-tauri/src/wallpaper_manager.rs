@@ -1,13 +1,8 @@
-use image::io::Reader;
+use dirs::{cache_dir, config_dir};
+use image::ImageReader;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
-use tauri::{
-    api::{
-        file::read_string,
-        path::{cache_dir, config_dir},
-    },
-    async_runtime::spawn_blocking,
-};
+use tauri::async_runtime::spawn_blocking;
 use tokio::fs::create_dir;
 
 use crate::{
@@ -101,7 +96,7 @@ impl WallpaperManager {
     /// Tries to read config from filesystem
     fn load_config() -> Option<Config> {
         if let Some(path) = Self::config_path() {
-            let data = read_string(path)
+            let data = std::fs::read_to_string(path)
                 .ok()
                 .map(|content| toml::from_str::<Config>(&content).unwrap());
             info!("successfully loaded config");
@@ -139,7 +134,7 @@ impl WallpaperManager {
         Mutex<String>,
     )> {
         if let Some(path) = Self::cache_path() {
-            let data = read_string(path)
+            let data = std::fs::read_to_string(path)
                 .ok()
                 .and_then(|content| serde_json::from_str::<CachData>(&content).ok())
                 .map(|a| {
@@ -306,7 +301,7 @@ impl WallpaperManager {
                 if single_path.exists() {
                     return;
                 }
-                match Reader::open(&file_path).unwrap().decode() {
+                match ImageReader::open(&file_path).unwrap().decode() {
                     Ok(image) => {
                         let factor = image.height() as f32 / image.width() as f32;
                         let thumbnail = image.thumbnail(300, (300. * factor) as u32);
