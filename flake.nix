@@ -15,8 +15,7 @@
     with inputs;
       flake-utils.lib.eachDefaultSystem (
         system: let
-          version = "0.1.2";
-
+          version = "0.1.3";
           pkgs = import nixpkgs {
             overlays = [(import rust-overlay)];
             inherit system;
@@ -64,11 +63,11 @@
             src = pkgs.lib.cleanSource ./.;
             nativeBuildInputs = with unstable; [
               nodejs
-              unstable.pnpm.configHook
+              pnpm.configHook
             ];
             pnpmDeps = unstable.pnpm.fetchDeps {
               inherit (finalAttrs) pname version src;
-              hash = "sha256-OsCughjP93BfcxyuNt2EnqwZvyLCEvVSbJeiOFGKJIo=";
+              hash = "sha256-H4Ux4PjahhYAUGRVzXM5znmSAncXMn5wy96R7jBlHFc=";
             };
 
             installPhase = ''
@@ -92,17 +91,17 @@
           packages = {
             ${name} = rustPlatform.buildRustPackage rec {
               inherit buildInputs name desktopItem version;
-              nativeBuildInputs = buildInputs;
+              nativeBuildInputs = buildInputs ++ [pkgs.pkg-config];
               src = ./src-tauri;
               cargoLock = {
                 lockFile = ./src-tauri/Cargo.lock;
                 outputHashes = {
-                  "wallpaper-4.0.0" = "sha256-C65jjr0dEGb52YcMLwCcrT4Wqf+xZN8eGtp8sXFF7fE=";
+                  "wallpaper-4.0.0" = "sha256-3Cz+cTAhRi/BvHq0r7KvuO2KDSHUcM2EVESezqO+eWM=";
                 };
               };
 
               postPatch = ''
-                substituteInPlace tauri.conf.json --replace '"distDir": "../dist",' '"distDir": "${frontend}",'
+                substituteInPlace tauri.conf.json --replace-fail '"frontendDist": "../dist",' '"frontendDist": "${frontend}",'
               '';
       
               postInstall = ''

@@ -3292,7 +3292,7 @@ dependencies = [
 
 [[package]]
 name = "reddit-wallpapers"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "anyhow",
  "dirs 1.0.5",
@@ -4858,6 +4858,7 @@ dependencies = [
 [[package]]
 name = "wallpaper"
 version = "4.0.0"
+source = "git+https://github.com/Septias/wallpaper.rs.git#beafee3df05f51c8f21c66ee3034c840d926edb1"
 dependencies = [
  "dirs 1.0.5",
  "enquote",
