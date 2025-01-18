@@ -8,6 +8,11 @@ import Inspect from 'vite-plugin-inspect'
 import Unocss from 'unocss/vite'
 
 export default defineConfig({
+  clearScreen: false,
+  server: {
+    strictPort: true;
+  },
+  envPrefix: ['VITE_', 'TAURI_ENV_*'],
   resolve: {
     alias: {
       '~/': `${path.resolve(__dirname, 'src')}/`,
