@@ -10,7 +10,7 @@ import Unocss from 'unocss/vite'
 export default defineConfig({
   clearScreen: false,
   server: {
-    strictPort: true;
+    strictPort: true
   },
   envPrefix: ['VITE_', 'TAURI_ENV_*'],
   resolve: {

@@ -53,7 +53,12 @@
         ],
         "enable": true
       },
-      "csp": "default-src 'self'; img-src * asset: https://asset.localhost; font-src *; connect-src ipc: http://ipc.localhost"
+      "csp": {
+        "default-src": "'self' customprotocol: asset:",
+        "img-src": "'self' asset: https://asset.localhost blob: data:",
+        "font-src": [],
+        "connect-src": "ipc: http://ipc.localhost"
+      }
     },
     "windows": [
       {
@@ -62,7 +67,8 @@
         "height": 1080,
         "resizable": true,
         "fullscreen": false,
-        "useHttpsScheme": true
+        "useHttpsScheme": true,
+        "decorations": false
       }
     ]
   }
