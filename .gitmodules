@@ -1,0 +1,3 @@
+[submodule "wallpaper.rs"]
+	path = wallpaper.rs
+	url = git@github.com:Septias/wallpaper.rs.git
