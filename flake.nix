@@ -95,9 +95,9 @@
               src = ./src-tauri;
               cargoLock = {
                 lockFile = ./src-tauri/Cargo.lock;
-                # outputHashes = {
-                #   "wallpaper-4.0.0" = "sha256-3Cz+cTAhRi/BvHq0r7KvuO2KDSHUcM2EVESezqO+eWM=";
-                # };
+                outputHashes = {
+                  "wallpaper-4.0.0" = "sha256-2t7c+RLmScXH9FoPyTx7fCroWLd3qry7ZT3bGuUNjWA=";
+                };
               };
 
               postPatch = ''
