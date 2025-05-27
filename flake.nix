@@ -23,16 +23,16 @@
           unstable = import nixpkgs-unstable {
             inherit system;
           };
-          
-          nativeBuildInputs = with pkgs; [
-              pkg-config
-              gobject-introspection
-              cargo
-              cargo-tauri
-              nodejs
-            ];
 
-          buildInputs = with pkgs;[
+          nativeBuildInputs = with pkgs; [
+            pkg-config
+            gobject-introspection
+            cargo
+            cargo-tauri
+            nodejs
+          ];
+
+          buildInputs = with pkgs; [
             at-spi2-atk
             atkmm
             cairo
@@ -46,11 +46,10 @@
             webkitgtk_4_1
             openssl
             makeWrapper
-            libsoup
           ];
 
           rust-toolchain = pkgs.rust-bin.stable.latest.default.override {
-          extensions = ["rust-src" "rustfmt" "rust-docs" "clippy" "rust-analyzer"];
+            extensions = ["rust-src" "rustfmt" "rust-docs" "clippy" "rust-analyzer"];
           };
           rustPlatform = pkgs.makeRustPlatform {
             cargo = rust-toolchain;
@@ -67,7 +66,7 @@
             ];
             pnpmDeps = unstable.pnpm.fetchDeps {
               inherit (finalAttrs) pname version src;
-              hash = "sha256-H4Ux4PjahhYAUGRVzXM5znmSAncXMn5wy96R7jBlHFc=";
+              hash = "sha256-O6B5Zoc8UJrOtuFtA7SdvX/8RoAZuazPaTwdoIs8jGQ=";
             };
 
             installPhase = ''
@@ -81,11 +80,10 @@
             icon = "reddit-wallpapers";
             comment = "Wallpapers";
             exec = "reddit-wallpapers";
-            categories = [ "Office" ];
+            categories = ["Office"];
           };
           icon = ./src-tauri/icons/icon.png;
           icon-small = ./src-tauri/icons/128x128.png;
-        
         in rec {
           formatter = pkgs.alejandra;
           packages = {
@@ -103,7 +101,7 @@
               postPatch = ''
                 substituteInPlace tauri.conf.json --replace-fail '"frontendDist": "../dist",' '"frontendDist": "${frontend}",'
               '';
-      
+
               postInstall = ''
                 mkdir -p $out/share/icons/hicolor/128x128/apps
                 mkdir -p $out/share/icons/hicolor/512x512/apps
@@ -116,7 +114,7 @@
                 wrapProgram $out/bin/${name} --prefix PATH : ${pkgs.glib}/bin --set WEBKIT_DISABLE_COMPOSITING_MODE 1
               '';
 
-              meta = {  
+              meta = {
                 description = "Application to set r/wallpapers from reddit as desktop-background";
                 homepage = "https://github.com/Septias/reddit-wallpapers";
                 mainProgram = "reddit-wallpapers";
@@ -131,7 +129,7 @@
             shellHook = ''
               export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath buildInputs}:$LD_LIBRARY_PATH
               export XDG_DATA_DIRS=${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}:$XDG_DATA_DIRS
-              export WEBKIT_DISABLE_COMPOSITING_MODE=1 
+              export WEBKIT_DISABLE_COMPOSITING_MODE=1
             '';
           };
         }
