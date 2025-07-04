@@ -53,6 +53,7 @@
             cargo = rust-toolchain;
             rustc = rust-toolchain;
           };
+
           desktopItem = pkgs.makeDesktopItem {
             name = "Reddit Wallpapers";
             desktopName = "Reddit Wallpapers";
@@ -61,6 +62,7 @@
             exec = "reddit-wallpapers";
             categories = ["Office"];
           };
+
           icon = ./src-tauri/icons/icon.png;
           src = pkgs.lib.cleanSource ./.;
           icon-small = ./src-tauri/icons/128x128.png;
@@ -84,16 +86,6 @@
               };
               buildAndTestSubdir = finalAttrs.cargoRoot;
 
-              postInstall = ''
-                mkdir -p $out/share/icons/hicolor/128x128/apps
-                mkdir -p $out/share/icons/hicolor/512x512/apps
-                cp ${icon-small} $out/share/icons/hicolor/128x128/apps/reddit-wallpapers.png
-                cp ${icon} $out/share/icons/hicolor/512x512/apps/reddit-wallpapers.png
-
-                mkdir -p "$out/share/applications"
-                cp $desktopItem/share/applications/* $out/share/applications
-              '';
-
               meta = {
                 description = "Application to set r/wallpapers from reddit as desktop-background";
                 homepage = "https://github.com/Septias/reddit-wallpapers";
@@ -103,6 +95,7 @@
             default = packages.${pname};
           };
           devShells.default = pkgs.mkShell {
+            inherit nativeBuildInputs;
             buildInputs = buildInputs ++ [rust-toolchain pkgs.cargo-tauri];
             RUST_BACKTRACE = 1;
 
