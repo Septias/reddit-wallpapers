@@ -1,9 +1,7 @@
 {
   description = "Application to set wallpapers from reddit as desktop-background";
   inputs = {
-    os_flake.url = "github:septias/nixos-config";
-    nixpkgs.follows = "os_flake/nixpkgs";
-    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -15,20 +13,19 @@
     with inputs;
       flake-utils.lib.eachDefaultSystem (
         system: let
+          pname = "reddit-wallpapers";
           version = "0.1.3";
+
           pkgs = import nixpkgs {
             overlays = [(import rust-overlay)];
-            inherit system;
-          };
-          unstable = import nixpkgs-unstable {
             inherit system;
           };
 
           nativeBuildInputs = with pkgs; [
             pkg-config
             gobject-introspection
-            cargo
-            cargo-tauri
+            cargo-tauri.hook
+            pnpm_9.configHook
             nodejs
           ];
 
@@ -51,29 +48,11 @@
           rust-toolchain = pkgs.rust-bin.stable.latest.default.override {
             extensions = ["rust-src" "rustfmt" "rust-docs" "clippy" "rust-analyzer"];
           };
+
           rustPlatform = pkgs.makeRustPlatform {
             cargo = rust-toolchain;
             rustc = rust-toolchain;
           };
-          name = "reddit-wallpapers";
-          frontend = pkgs.stdenv.mkDerivation (finalAttrs: {
-            inherit version;
-            pname = "reddit-wallpapers-frontend";
-            src = pkgs.lib.cleanSource ./.;
-            nativeBuildInputs = with unstable; [
-              nodejs
-              pnpm.configHook
-            ];
-            pnpmDeps = unstable.pnpm.fetchDeps {
-              inherit (finalAttrs) pname version src;
-              hash = "sha256-O6B5Zoc8UJrOtuFtA7SdvX/8RoAZuazPaTwdoIs8jGQ=";
-            };
-
-            installPhase = ''
-              pnpm build
-              cp -r dist $out
-            '';
-          });
           desktopItem = pkgs.makeDesktopItem {
             name = "Reddit Wallpapers";
             desktopName = "Reddit Wallpapers";
@@ -83,24 +62,27 @@
             categories = ["Office"];
           };
           icon = ./src-tauri/icons/icon.png;
+          src = pkgs.lib.cleanSource ./.;
           icon-small = ./src-tauri/icons/128x128.png;
         in rec {
           formatter = pkgs.alejandra;
           packages = {
-            ${name} = rustPlatform.buildRustPackage rec {
-              inherit buildInputs name desktopItem version;
-              nativeBuildInputs = buildInputs ++ [pkgs.pkg-config];
-              src = ./src-tauri;
+            ${pname} = rustPlatform.buildRustPackage (finalAttrs: {
+              inherit buildInputs nativeBuildInputs pname desktopItem version src;
+
+              pnpmDeps = pkgs.pnpm_9.fetchDeps {
+                inherit (finalAttrs) pname version src;
+                hash = "sha256-H4Ux4PjahhYAUGRVzXM5znmSAncXMn5wy96R7jBlHFc=";
+              };
+
+              cargoRoot = "src-tauri";
               cargoLock = {
-                lockFile = ./src-tauri/Cargo.lock;
+                lockFile = "${src}/src-tauri/Cargo.lock";
                 outputHashes = {
                   "wallpaper-4.0.0" = "sha256-2t7c+RLmScXH9FoPyTx7fCroWLd3qry7ZT3bGuUNjWA=";
                 };
               };
-
-              postPatch = ''
-                substituteInPlace tauri.conf.json --replace-fail '"frontendDist": "../dist",' '"frontendDist": "${frontend}",'
-              '';
+              buildAndTestSubdir = finalAttrs.cargoRoot;
 
               postInstall = ''
                 mkdir -p $out/share/icons/hicolor/128x128/apps
@@ -110,8 +92,6 @@
 
                 mkdir -p "$out/share/applications"
                 cp $desktopItem/share/applications/* $out/share/applications
-
-                wrapProgram $out/bin/${name} --prefix PATH : ${pkgs.glib}/bin --set WEBKIT_DISABLE_COMPOSITING_MODE 1
               '';
 
               meta = {
@@ -119,11 +99,11 @@
                 homepage = "https://github.com/Septias/reddit-wallpapers";
                 mainProgram = "reddit-wallpapers";
               };
-            };
-            default = packages.${name};
+            });
+            default = packages.${pname};
           };
           devShells.default = pkgs.mkShell {
-            buildInputs = buildInputs ++ nativeBuildInputs ++ [rust-toolchain pkgs.cargo-tauri];
+            buildInputs = buildInputs ++ [rust-toolchain pkgs.cargo-tauri];
             RUST_BACKTRACE = 1;
 
             shellHook = ''
