@@ -62,10 +62,7 @@
             exec = "reddit-wallpapers";
             categories = ["Office"];
           };
-
-          icon = ./src-tauri/icons/icon.png;
           src = pkgs.lib.cleanSource ./.;
-          icon-small = ./src-tauri/icons/128x128.png;
         in rec {
           formatter = pkgs.alejandra;
           packages = {
@@ -84,6 +81,12 @@
                   "wallpaper-4.0.0" = "sha256-2t7c+RLmScXH9FoPyTx7fCroWLd3qry7ZT3bGuUNjWA=";
                 };
               };
+              postInstall = ''
+                wrapProgram $out/bin/reddit_wallpapers \
+                  --prefix PATH : ${pkgs.glib}/bin \
+                  --prefix XDG_DATA_DIRS : "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}" \
+                  --set WEBKIT_DISABLE_COMPOSITING_MODE 1
+              '';
               buildAndTestSubdir = finalAttrs.cargoRoot;
 
               meta = {

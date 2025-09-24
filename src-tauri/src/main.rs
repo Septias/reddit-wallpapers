@@ -11,7 +11,6 @@ use reddit_wallpapers::{
 };
 use std::sync::Arc;
 use tauri::{generate_context, Manager};
-use tauri_plugin_positioner::{Position, WindowExt};
 
 #[tauri::command]
 async fn get_all_wallpapers(
@@ -79,7 +78,6 @@ async fn main() -> anyhow::Result<()> {
     let wm = Arc::new(WallpaperManager::new().await);
     let wm_clone = wm.clone();
     let app = tauri::Builder::default()
-        .plugin(tauri_plugin_positioner::init())
         .manage(wm)
         .invoke_handler(tauri::generate_handler![
             get_all_wallpapers,
@@ -91,11 +89,6 @@ async fn main() -> anyhow::Result<()> {
             set_config,
             is_configured
         ])
-        .setup(|app| {
-            let win = app.get_webview_window("main").unwrap();
-            let _ = win.move_window(Position::TopRight);
-            Ok(())
-        })
         .build(generate_context!())
         .expect("error while running tauri application");
 
