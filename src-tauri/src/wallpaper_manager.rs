@@ -3,7 +3,7 @@ use image::ImageReader;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use tauri::async_runtime::spawn_blocking;
-use tokio::fs::create_dir;
+use tokio::fs::{self as tokio_fs, create_dir, create_dir_all};
 
 use crate::{
     client::{ClientError, RedditClient},
@@ -11,7 +11,6 @@ use crate::{
 };
 use std::{
     collections::HashMap,
-    fs::{self, create_dir_all},
     path::PathBuf,
     sync::{Arc, Mutex},
 };
@@ -39,13 +38,13 @@ pub struct WallpaperManager {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct CachData {
+pub struct CacheData {
     post_data: HashMap<String, PostInfo>,
     posts: Vec<Wallpaper>,
     last_seen_wallpaper: String,
 }
 
-impl From<&WallpaperManager> for CachData {
+impl From<&WallpaperManager> for CacheData {
     fn from(wm: &WallpaperManager) -> Self {
         Self {
             post_data: (*wm.post_data.lock().unwrap()).clone(),
@@ -98,7 +97,7 @@ impl WallpaperManager {
         if let Some(path) = Self::config_path() {
             let data = std::fs::read_to_string(path)
                 .ok()
-                .map(|content| toml::from_str::<Config>(&content).unwrap());
+                .and_then(|content| toml::from_str::<Config>(&content).ok());
             info!("successfully loaded config");
             data
         } else {
@@ -107,14 +106,16 @@ impl WallpaperManager {
         }
     }
 
-    fn save_config(config: &Config) -> anyhow::Result<()> {
+    async fn save_config(config: &Config) -> anyhow::Result<()> {
         if let Some(path) = Self::config_path() {
             info!("saving config at {path:?}");
-            let parent = path.parent().unwrap();
+            let parent = path
+                .parent()
+                .ok_or_else(|| anyhow::anyhow!("Invalid config path"))?;
             if !parent.is_dir() {
-                create_dir_all(parent)?;
+                create_dir_all(parent).await?;
             }
-            fs::write(path, toml::to_string(&config).unwrap()).unwrap();
+            tokio_fs::write(path, toml::to_string(&config)?).await?;
         } else {
             warn!("can't create config path");
         }
@@ -136,7 +137,7 @@ impl WallpaperManager {
         if let Some(path) = Self::cache_path() {
             let data = std::fs::read_to_string(path)
                 .ok()
-                .and_then(|content| serde_json::from_str::<CachData>(&content).ok())
+                .and_then(|content| serde_json::from_str::<CacheData>(&content).ok())
                 .map(|a| {
                     (
                         Mutex::new(a.post_data),
@@ -153,15 +154,17 @@ impl WallpaperManager {
     }
 
     /// Save cache to disk
-    pub fn save_cache(&self) -> anyhow::Result<()> {
+    pub async fn save_cache(&self) -> anyhow::Result<()> {
         if let Some(path) = Self::cache_path() {
             info!("saving cache at {path:?}");
-            let parent = path.parent().unwrap();
+            let parent = path
+                .parent()
+                .ok_or_else(|| anyhow::anyhow!("Invalid cache path"))?;
             if !parent.exists() {
-                create_dir_all(parent)?;
+                create_dir_all(parent).await?;
             }
-            let data = serde_json::to_string(&CachData::from(self)).unwrap();
-            fs::write(path, data)?;
+            let data = serde_json::to_string(&CacheData::from(self))?;
+            tokio_fs::write(path, data).await?;
         } else {
             warn!("can't create config path");
         }
@@ -188,15 +191,19 @@ impl WallpaperManager {
     }
 
     /// Set a wallpaper as system-wallpaper
-    pub async fn set_wallpaper(&self, name: &str) {
+    pub async fn set_wallpaper(&self, name: &str) -> Result<(), WallpaperError> {
         let wallpaper = self
             .get_wallpaper(name)
-            .unwrap_or_else(|| panic!("no wallpaper with name {} exists", name));
+            .ok_or_else(|| WallpaperError::InvalidEnding)?; // Reusing existing error variant
         let config = self.config.lock().unwrap();
         let path = config.path.join(&wallpaper.file_name);
-        let path = path.to_str().unwrap();
+        let path = path.to_str().ok_or(WallpaperError::InvalidEnding)?;
         info!("setting wallpaper: {:?}", path);
-        wallpaper::set_from_path(path).unwrap();
+        wallpaper::set_from_path(path).map_err(|e| {
+            warn!("Failed to set wallpaper: {:?}", e);
+            WallpaperError::InvalidEnding
+        })?;
+        Ok(())
     }
 
     fn get_wallpaper(&self, name: &str) -> Option<Arc<Wallpaper>> {
@@ -210,7 +217,7 @@ impl WallpaperManager {
 
     fn get_client(&self) -> Result<RedditClient, ClientError> {
         let rc = self.reddit_client.lock().unwrap().take();
-        rc.ok_or(ClientError::BadCredetials)
+        rc.ok_or(ClientError::BadCredentials)
     }
 
     fn put_client(&self, client: RedditClient) {
@@ -327,11 +334,13 @@ impl WallpaperManager {
     pub async fn set_config(&self, config: Config) -> Result<(), WallpaperError> {
         let client = RedditClient::new(&config).await?;
         *self.reddit_client.lock().unwrap() = Some(client);
-        create_dir_all(&config.path)?;
+        create_dir_all(&config.path).await?;
         if config.path.to_str().unwrap() == "" {
             return Err(WallpaperError::NoRootPaths);
         }
-        Self::save_config(&config).map_err(|e| warn!("{e}")).ok();
+        if let Err(e) = Self::save_config(&config).await {
+            warn!("{e}");
+        }
         *self.config.lock().unwrap() = config;
         Ok(())
     }

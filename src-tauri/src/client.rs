@@ -28,7 +28,7 @@ pub struct RedditClient {
 #[derive(Error, Debug, Serialize)]
 pub enum ClientError {
     #[error("Bad credentials")]
-    BadCredetials,
+    BadCredentials,
 
     #[error(transparent)]
     #[serde(with = "string_serializer")]
@@ -89,7 +89,7 @@ impl RedditClient {
 
         let resp = resp.send().await.unwrap();
         let t: TokenInfo = serde_json::from_str(&resp.text().await.unwrap())
-            .map_err(|_| ClientError::BadCredetials)?;
+            .map_err(|_| ClientError::BadCredentials)?;
         Ok(t.access_token)
     }
 
@@ -246,8 +246,11 @@ impl RedditClient {
                 file.write_all(&chunk).await.unwrap();
             }
 
-            // TODO: ugly
-            Ok(path.file_name().unwrap().to_str().unwrap().to_owned())
+            Ok(path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .map(|s| s.to_owned())
+                .ok_or(WallpaperError::InvalidEnding)?)
         })
         .await
         .unwrap()

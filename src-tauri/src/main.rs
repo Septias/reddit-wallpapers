@@ -43,9 +43,8 @@ async fn fetch_recent(wm: tauri::State<'_, Arc<WallpaperManager>>) -> Result<(),
 async fn select_wallpaper(
     wm: tauri::State<'_, Arc<WallpaperManager>>,
     name: String,
-) -> Result<(), ()> {
-    wm.set_wallpaper(&name).await;
-    Ok(())
+) -> Result<(), WallpaperError> {
+    wm.set_wallpaper(&name).await
 }
 
 #[tauri::command]
@@ -94,7 +93,12 @@ async fn main() -> anyhow::Result<()> {
 
     app.run(move |_app_handle, e| {
         if let tauri::RunEvent::Exit { .. } = e {
-            wm_clone.save_cache().map_err(|e| warn!("{e}")).ok();
+            let wm_clone = wm_clone.clone();
+            tokio::spawn(async move {
+                if let Err(e) = wm_clone.save_cache().await {
+                    warn!("{e}");
+                }
+            });
         }
     });
     Ok(())
