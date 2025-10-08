@@ -29,8 +29,11 @@ onMounted(() => {
 </script>
 
 <template lang="pug">
-router-link.absolute.top-0.left-0.bg-primaryl.p-1.rounded.m-1(to="/config")
-  div.text-white.i-carbon-settings
+.flex.items-center.justify-between.p-2.bg-primaryl
+  router-link.bg-primary.p-2.rounded(to="/config")
+    div.text-white.i-carbon-settings
+  div.text-white.font-bold.text-lg Reddit Wallpapers
+  div.w-8
 div.p-2.wallpapers.grid.gap-2.justify-center.items-center
   div(v-for="post in posts" :key="post.name")
     wallpaper(:post="post" :basePath="base_path" @removed="handleWallpaperRemoved")

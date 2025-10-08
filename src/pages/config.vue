@@ -33,9 +33,12 @@ const is_equal = computed(() => JSON.stringify(reference) === JSON.stringify(con
 </script>
 
 <template lang="pug">
-.flex.justify-center.items-center.h-screen
-  router-link.absolute.top-0.left-0.bg-primaryl.p-1.rounded.m-1(to="/")
+.flex.items-center.justify-between.p-2.bg-primaryl
+  router-link.bg-primary.p-2.rounded(to="/")
     div.text-white.i-carbon-home
+  div.text-white.font-bold.text-lg Reddit Wallpapers
+  div.w-8
+.flex.justify-center.items-center.h-screen.pt-16
   .border.rounded-xl.p-2.text-white.flex.flex-col.custom-width.w-max
     div.flex.justify-between.items-center
       h1.text-xl.font-bold Config
