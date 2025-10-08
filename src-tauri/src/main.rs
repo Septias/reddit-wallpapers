@@ -10,7 +10,7 @@ use reddit_wallpapers::{
     Config, Post, WallpaperError,
 };
 use std::sync::Arc;
-use tauri::{generate_context, Manager};
+use tauri::generate_context;
 
 #[tauri::command]
 async fn get_all_wallpapers(
@@ -66,8 +66,24 @@ async fn set_config(
 }
 
 #[tauri::command]
-fn is_configured(wm: tauri::State<'_, Arc<WallpaperManager>>) -> bool {
-    wm.is_configured()
+async fn is_configured(wm: tauri::State<'_, Arc<WallpaperManager>>) -> Result<bool, ()> {
+    Ok(wm.is_configured().await)
+}
+
+#[tauri::command]
+async fn remove_wallpaper(
+    wm: tauri::State<'_, Arc<WallpaperManager>>,
+    name: String,
+) -> Result<(), WallpaperError> {
+    wm.remove_wallpaper(&name).await
+}
+
+#[tauri::command]
+async fn remove_wallpaper_local(
+    wm: tauri::State<'_, Arc<WallpaperManager>>,
+    name: String,
+) -> Result<(), WallpaperError> {
+    wm.remove_wallpaper_local(&name).await
 }
 
 #[tokio::main]
@@ -86,7 +102,9 @@ async fn main() -> anyhow::Result<()> {
             get_wallpapers_path,
             get_config,
             set_config,
-            is_configured
+            is_configured,
+            remove_wallpaper,
+            remove_wallpaper_local
         ])
         .build(generate_context!())
         .expect("error while running tauri application");

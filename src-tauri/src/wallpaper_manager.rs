@@ -347,4 +347,42 @@ impl WallpaperManager {
     pub async fn is_configured(&self) -> bool {
         self.reddit_client.read().await.is_some()
     }
+
+    pub async fn remove_wallpaper(&self, name: &str) -> Result<(), WallpaperError> {
+        let wallpaper = self
+            .get_wallpaper(name)
+            .ok_or_else(|| WallpaperError::InvalidEnding)?;
+        
+        let client_guard = self.reddit_client.read().await;
+        let client = client_guard.as_ref().ok_or(ClientError::NotAvailable)?;
+        
+        if let Err(e) = client.unsave_post(name).await {
+            warn!("Failed to unsave post from Reddit: {}", e);
+        }
+        
+        client.remove_wallpaper_file(&wallpaper.file_name).await?;
+        
+        self.wallpapers.lock().unwrap().retain(|w| w.name != name);
+        
+        self.post_data.lock().unwrap().remove(name);
+        
+        Ok(())
+    }
+
+    pub async fn remove_wallpaper_local(&self, name: &str) -> Result<(), WallpaperError> {
+        let wallpaper = self
+            .get_wallpaper(name)
+            .ok_or_else(|| WallpaperError::InvalidEnding)?;
+        
+        let client_guard = self.reddit_client.read().await;
+        let client = client_guard.as_ref().ok_or(ClientError::NotAvailable)?;
+        
+        client.remove_wallpaper_file(&wallpaper.file_name).await?;
+        
+        self.wallpapers.lock().unwrap().retain(|w| w.name != name);
+        
+        self.post_data.lock().unwrap().remove(name);
+        
+        Ok(())
+    }
 }

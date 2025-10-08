@@ -30,6 +30,9 @@ pub enum ClientError {
     #[error("Bad credentials")]
     BadCredentials,
 
+    #[error("Client not available - not configured")]
+    NotAvailable,
+
     #[error(transparent)]
     #[serde(with = "string_serializer")]
     Reqwest(#[from] reqwest::Error),
@@ -254,5 +257,50 @@ impl RedditClient {
         })
         .await
         .unwrap()
+    }
+
+    pub async fn unsave_post(&self, post_name: &str) -> Result<(), ClientError> {
+        let mut form = HashMap::new();
+        form.insert("id", post_name);
+        
+        let response = self
+            .client
+            .post("https://oauth.reddit.com/api/unsave")
+            .header("Authorization", format!("bearer {}", self.token))
+            .form(&form)
+            .send()
+            .await?;
+        
+        if response.status().is_success() {
+            info!("Successfully unsaved post: {}", post_name);
+            Ok(())
+        } else {
+            warn!("Failed to unsave post {}: {}", post_name, response.status());
+            Err(ClientError::Reqwest(reqwest::Error::from(
+                response.error_for_status().unwrap_err()
+            )))
+        }
+    }
+
+    pub async fn remove_wallpaper_file(&self, file_name: &str) -> Result<(), WallpaperError> {
+        let mut path = self.base_path.clone();
+        path.push(file_name);
+        
+        if !path.exists() {
+            return Err(WallpaperError::InvalidEnding);
+        }
+        
+        tokio::fs::remove_file(&path).await
+            .map_err(|_| WallpaperError::InvalidEnding)?;
+        
+        let mut thumbnail_path = self.base_path.clone();
+        thumbnail_path.push("thumbnails");
+        thumbnail_path.push(file_name);
+        
+        if thumbnail_path.exists() {
+            let _ = tokio::fs::remove_file(thumbnail_path).await;
+        }
+        
+        Ok(())
     }
 }

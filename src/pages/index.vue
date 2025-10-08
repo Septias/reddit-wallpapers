@@ -19,6 +19,10 @@ async function update() {
   posts.value = await invoke('get_cached_wallpapers')
 }
 
+function handleWallpaperRemoved(removedName: string) {
+  posts.value = posts.value.filter(post => post.name !== removedName)
+}
+
 onMounted(() => {
   update()
 })
@@ -29,7 +33,7 @@ router-link.absolute.top-0.left-0.bg-primaryl.p-1.rounded.m-1(to="/config")
   div.text-white.i-carbon-settings
 div.p-2.wallpapers.grid.gap-2.justify-center.items-center
   div(v-for="post in posts" :key="post.name")
-    wallpaper(:post="post" :basePath="base_path")
+    wallpaper(:post="post" :basePath="base_path" @removed="handleWallpaperRemoved")
 </template>
 
 <style lang="sass">
