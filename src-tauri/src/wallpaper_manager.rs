@@ -82,13 +82,25 @@ impl WallpaperManager {
 
         // load post_data and wallpapers
         let (post_data, wallpapers, last_seen_wallpaper) = Self::load_cache().unwrap_or_default();
-        Self {
+        let manager = Self {
             reddit_client: RwLock::new(reddit_client),
             config: Mutex::new(config),
             post_data,
             wallpapers,
             last_seen_wallpaper,
+        };
+
+        // Validate cache and clean up missing files
+        if let Err(e) = manager.validate_cache().await {
+            warn!("Failed to validate cache: {}", e);
+        } else {
+            // Save cache after validation to persist any changes
+            if let Err(e) = manager.save_cache().await {
+                warn!("Failed to save cache after validation: {}", e);
+            }
         }
+
+        manager
     }
 
     fn config_path() -> Option<PathBuf> {
@@ -157,6 +169,65 @@ impl WallpaperManager {
             warn!("can't create cache path");
             None
         }
+    }
+
+    /// Validate cache by checking if wallpaper files exist and regenerating missing thumbnails
+    pub async fn validate_cache(&self) -> anyhow::Result<()> {
+        let wallpaper_path = {
+            let config = self.config.lock().unwrap();
+            config.path.clone()
+        };
+        let thumbnails_path = wallpaper_path.join("thumbnails");
+        
+        if !thumbnails_path.exists() {
+            create_dir_all(&thumbnails_path).await?;
+        }
+
+        let mut wallpapers_to_remove = Vec::new();
+        let mut thumbnails_to_regenerate = Vec::new();
+
+        // Check each wallpaper in the cache
+        {
+            let wallpapers = self.wallpapers.lock().unwrap();
+            for wallpaper in wallpapers.iter() {
+                let source_path = wallpaper_path.join(&wallpaper.file_name);
+                let thumbnail_path = thumbnails_path.join(&wallpaper.file_name);
+
+                if !source_path.exists() {
+                    // Source file is missing, mark for removal
+                    info!("Source file missing for {}: {:?}", wallpaper.name, source_path);
+                    wallpapers_to_remove.push(wallpaper.name.clone());
+                } else if !thumbnail_path.exists() {
+                    // Source exists but thumbnail is missing, mark for regeneration
+                    info!("Thumbnail missing for {}: {:?}", wallpaper.name, thumbnail_path);
+                    thumbnails_to_regenerate.push(wallpaper.file_name.clone());
+                }
+            }
+        }
+
+        // Remove wallpapers with missing source files
+        if !wallpapers_to_remove.is_empty() {
+            info!("Removing {} wallpapers with missing source files", wallpapers_to_remove.len());
+            let mut wallpapers = self.wallpapers.lock().unwrap();
+            let mut post_data = self.post_data.lock().unwrap();
+            
+            wallpapers.retain(|w| !wallpapers_to_remove.contains(&w.name));
+            for name in &wallpapers_to_remove {
+                post_data.remove(name);
+            }
+        }
+
+        // Regenerate missing thumbnails
+        if !thumbnails_to_regenerate.is_empty() {
+            info!("Regenerating {} missing thumbnails", thumbnails_to_regenerate.len());
+            let mut paths = HashMap::new();
+            for file_name in &thumbnails_to_regenerate {
+                paths.insert(file_name.clone(), file_name.clone());
+            }
+            self.create_thumbnails(&paths).await;
+        }
+
+        Ok(())
     }
 
     /// Save cache to disk
