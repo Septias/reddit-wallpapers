@@ -3,7 +3,10 @@ use image::ImageReader;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use tauri::async_runtime::spawn_blocking;
-use tokio::fs::{self as tokio_fs, create_dir, create_dir_all};
+use tokio::{
+    fs::{self as tokio_fs, create_dir, create_dir_all},
+    sync::RwLock,
+};
 
 use crate::{
     client::{ClientError, RedditClient},
@@ -32,7 +35,7 @@ pub struct Wallpaper {
 pub struct WallpaperManager {
     pub config: Mutex<Config>,
     post_data: Mutex<HashMap<String, PostInfo>>,
-    reddit_client: Mutex<Option<RedditClient>>,
+    reddit_client: RwLock<Option<Arc<RedditClient>>>,
     wallpapers: Mutex<Vec<Arc<Wallpaper>>>,
     last_seen_wallpaper: Mutex<String>,
 }
@@ -69,15 +72,18 @@ impl WallpaperManager {
         let config = Self::load_config().unwrap_or_default();
 
         // create client using config
-        let reddit_client = RedditClient::new(&config).await;
-        if let Err(e) = &reddit_client {
-            warn!("{e}")
-        }
+        let reddit_client = match RedditClient::new(&config).await {
+            Ok(client) => Some(Arc::new(client)),
+            Err(e) => {
+                warn!("Failed to create Reddit client: {e}");
+                None
+            }
+        };
 
         // load post_data and wallpapers
         let (post_data, wallpapers, last_seen_wallpaper) = Self::load_cache().unwrap_or_default();
         Self {
-            reddit_client: Mutex::new(reddit_client.ok()),
+            reddit_client: RwLock::new(reddit_client),
             config: Mutex::new(config),
             post_data,
             wallpapers,
@@ -173,14 +179,15 @@ impl WallpaperManager {
 
     /// Fetch all wallpapers
     pub async fn fetch_all_wallpapers(&self) -> Result<Vec<Post>, ClientError> {
-        let client = self.get_client()?;
+        let client_guard = self.reddit_client.read().await;
+        let client = client_guard.as_ref().ok_or(ClientError::NotAvailable)?;
+        
         let wallpapers = client
             .fetch_all_saved_posts()
             .await
             .into_iter()
             .filter(|post| post.subreddit == "wallpaper")
             .collect::<Vec<_>>();
-        self.put_client(client);
         Ok(wallpapers)
     }
 
@@ -215,18 +222,11 @@ impl WallpaperManager {
             .cloned()
     }
 
-    fn get_client(&self) -> Result<RedditClient, ClientError> {
-        let rc = self.reddit_client.lock().unwrap().take();
-        rc.ok_or(ClientError::BadCredentials)
-    }
-
-    fn put_client(&self, client: RedditClient) {
-        *self.reddit_client.lock().unwrap() = Some(client)
-    }
 
     /// Fetch all new wallpapers from reddit app
     pub async fn fetch_recent_wallpapers(&self) -> Result<(), ClientError> {
-        let client = self.get_client()?;
+        let client_guard = self.reddit_client.read().await;
+        let client = client_guard.as_ref().ok_or(ClientError::NotAvailable)?;
         info!("started fetching wallpapers");
         // request all new post
         let posts = {
@@ -289,7 +289,6 @@ impl WallpaperManager {
             "finished requesting images, new image count: {}",
             self.wallpapers.lock().unwrap().len()
         );
-        self.put_client(client);
         Ok(())
     }
 
@@ -333,7 +332,7 @@ impl WallpaperManager {
 
     pub async fn set_config(&self, config: Config) -> Result<(), WallpaperError> {
         let client = RedditClient::new(&config).await?;
-        *self.reddit_client.lock().unwrap() = Some(client);
+        *self.reddit_client.write().await = Some(Arc::new(client));
         create_dir_all(&config.path).await?;
         if config.path.to_str().unwrap() == "" {
             return Err(WallpaperError::NoRootPaths);
@@ -345,7 +344,7 @@ impl WallpaperManager {
         Ok(())
     }
 
-    pub fn is_configured(&self) -> bool {
-        self.reddit_client.lock().unwrap().is_some()
+    pub async fn is_configured(&self) -> bool {
+        self.reddit_client.read().await.is_some()
     }
 }
